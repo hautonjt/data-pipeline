@@ -1,7 +1,7 @@
 #!/bin/bash
-mkdir -p /var/lib/nifi/nifi-0
-mkdir -p /var/lib/nifi/nifi-1
-mkdir -p /var/lib/nifi/nifi-2
+sudo mkdir -p /var/lib/nifi/nifi-0
+sudo mkdir -p /var/lib/nifi/nifi-1
+sudo mkdir -p /var/lib/nifi/nifi-2
 
 sudo cp geoip/GeoLite2-City.mmdb /var/lib/nifi/nifi-0
 sudo cp geoip/GeoLite2-City.mmdb /var/lib/nifi/nifi-1
