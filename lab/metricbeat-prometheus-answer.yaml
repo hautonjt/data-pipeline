@@ -1,0 +1,121 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metricbeat-daemonset-prometheus-config
+  namespace: datapipeline
+  labels:
+    k8s-app: metricbeat
+data:
+  metricbeat.yml: |-
+    metricbeat.modules:
+      - module: prometheus
+        period: 5s
+        hosts: ["nssdc-kube-state-metrics.monarch.svc:8080"]
+        metricsets: ["collector"]
+        metrics_path: /metrics
+
+      - module: prometheus
+        period: 5s
+        hosts: ["kpi-calculator-service.monarch.svc:9000"]
+        metricsets: ["collector"]
+        metrics_path: /metrics
+
+      - module: prometheus
+        period: 5s
+        hosts: ["amf-metrics-service.open5gs.svc:9090"]
+        metricsets: ["collector"]
+        metrics_path: /metrics
+
+      - module: prometheus
+        period: 5s
+        hosts: ["upf-metrics-service.open5gs.svc:9090"]
+        metricsets: ["collector"]
+        metrics_path: /metrics
+
+      - module: prometheus
+        period: 5s
+        hosts: ["smf-metrics-service.open5gs.svc:9090"]
+        metricsets: ["collector"]
+        metrics_path: /metrics
+
+    processors:
+      - add_host_metadata:
+
+    output.kafka:
+      hosts: ["${KAFKA_HOST}"]
+      username: ${KAFKA_USERNAME}
+      password: ${KAFKA_PASSWORD}
+      topic: prometheus
+---
+# Deploy a Metricbeat instance per node for node metrics retrieval
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: metricbeat-prometheus
+  namespace: datapipeline
+  labels:
+    k8s-app: metricbeat
+spec:
+  selector:
+    matchLabels:
+      k8s-app: metricbeat
+  template:
+    metadata:
+      labels:
+        k8s-app: metricbeat
+    spec:
+      serviceAccountName: metricbeat
+      terminationGracePeriodSeconds: 30
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: metricbeat
+        image: docker.elastic.co/beats/metricbeat:8.15.0
+        args: [
+          "-c", "/etc/metricbeat.yml",
+          "-e",
+          "-system.hostfs=/hostfs",
+        ]
+        env:
+        - name: KAFKA_HOST
+          value: "kafka:9092"
+        - name: KAFKA_USERNAME
+          value: user1
+        - name: KAFKA_PASSWORD
+          value: kafka
+        - name: NODE_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        securityContext:
+          runAsUser: 0
+        volumeMounts:
+        - name: config
+          mountPath: /etc/metricbeat.yml
+          readOnly: true
+          subPath: metricbeat.yml
+        - name: data
+          mountPath: /usr/share/metricbeat/data
+        - name: proc
+          mountPath: /hostfs/proc
+          readOnly: true
+        - name: cgroup
+          mountPath: /hostfs/sys/fs/cgroup
+          readOnly: true
+      volumes:
+      - name: proc
+        hostPath:
+          path: /proc
+      - name: cgroup
+        hostPath:
+          path: /sys/fs/cgroup
+      - name: config
+        configMap:
+          defaultMode: 0640
+          name: metricbeat-daemonset-prometheus-config
+      - name: data
+        hostPath:
+          # When metricbeat runs as non-root user, this directory needs to be writable by group (g+w)
+          path: /var/lib/metricbeat-prometheus-data
+          type: DirectoryOrCreate
+---

@@ -1,0 +1,168 @@
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: nifi
+  labels:
+    name: nifi
+    app: nifi
+  annotations:
+    app.kubernetes.io/name: nifi
+    app.kubernetes.io/part-of: nifi
+spec:
+  revisionHistoryLimit: 1
+  serviceName: nifi
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: nifi
+  template:
+    metadata:
+      labels:
+        app: nifi
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      setHostnameAsFQDN: true
+      dnsPolicy: ClusterFirstWithHostNet
+      restartPolicy: Always
+      securityContext:
+        runAsGroup: 1000
+        runAsUser: 1000
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: wait-for-zookeeper
+          image: docker.io/busybox:1.36
+          command:
+          - sh
+          - -c
+          - |
+            echo "Connecting to Zookeeper ${NIFI_ZK_CONNECT_STRING}"
+            until nc -vzw 1 zookeeper 2181 ; do
+              echo "Waiting for zookeeper to start"
+              sleep 3
+            done
+          envFrom:
+          - configMapRef:
+              name: nifi-cm
+              optional: false
+          securityContext:
+            allowPrivilegeEscalation: false
+            privileged: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+      containers:
+      - name: nifi
+        image: docker.io/apache/nifi:1.28.0
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8080
+          name: http
+        - containerPort: 11443
+          name: cluster
+        - containerPort: 8443
+          name: https
+        - containerPort: 6342
+          name: cluster-lb
+        env:
+          - name: POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP # Use pod ip
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name # Use pod name
+          - name: POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace # Use pod namespace
+          - name: NIFI_UI_BANNER_TEXT
+            value: $(POD_NAME) # Use pod name for banner
+          - name: NIFI_WEB_HTTP_HOST
+            value: $(POD_NAME).nifi.$(POD_NAMESPACE).svc.cluster.local # Use pod fqdn as web host
+          - name: NIFI_CLUSTER_NODE_ADDRESS
+            value: $(POD_NAME).nifi.$(POD_NAMESPACE).svc.cluster.local # Use pod fqdn as node address
+          - name: NIFI_REMOTE_INPUT_SOCKET_HOST
+            value: $(POD_NAME).nifi.$(POD_NAMESPACE).svc.cluster.local # Use pod fqdn as input socket address
+          - name: NIFI_REMOTE_INPUT_HOST
+            value: $(POD_NAME).nifi.$(POD_NAMESPACE).svc.cluster.local # Use pod fqdn as input host address
+          - name: HOSTNAME
+            value: $(POD_IP) # Use pod ip as hostname
+          - name: NODE_IDENTITY
+            value: $(POD_NAME) # Use pod name as identity
+        envFrom:
+          - configMapRef:
+              name: nifi-cm
+              optional: false
+        volumeMounts:
+          - name: data
+            mountPath: /opt/nifi/nifi-current/data
+            subPath: data
+            readOnly: false
+          - name: data
+            mountPath: /opt/nifi/nifi-current/keytool
+            subPath: keytool
+            readOnly: false
+          - name: scripts
+            mountPath: /scripts/security.sh
+            subPath: security.sh
+            readOnly: false
+          - name: certs
+            mountPath: /opt/nifi/nifi-current/keytool/keystore.p12
+            subPath: keystore.p12
+            readOnly: true
+          - name: certs
+            mountPath: /opt/nifi/nifi-current/keytool/truststore.p12
+            subPath: truststore.p12
+            readOnly: true
+          - name: state
+            mountPath: /opt/nifi/nifi-current/state
+            subPathExpr: $(POD_NAME)
+        lifecycle:
+          postStart:
+            exec:
+              command:
+                - /scripts/security.sh
+        livenessProbe:
+          exec:
+            command:
+              - pgrep
+              - java
+          initialDelaySeconds: 60
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+          successThreshold: 1
+        securityContext:
+          allowPrivilegeEscalation: false
+          privileged: false
+          capabilities:
+            drop:
+              - ALL
+      volumes:
+        - name: data
+          emptyDir:
+            sizeLimit: 3Gi
+        - name: scripts
+          configMap:
+            name: nifi-ssl-cm
+            optional: false
+            defaultMode: 0755
+        - name: start
+          configMap:
+            name: nifi-start-cm
+            optional: false
+            defaultMode: 0755
+        - name: certs
+          secret:
+            secretName: opensearch-certs
+        - name: state
+          hostPath:
+            path: /var/lib/nifi
+            type: DirectoryOrCreate
+

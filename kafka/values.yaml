@@ -1,0 +1,14 @@
+sasl:
+  client:
+    users:
+      - user1
+    passwords: "kafka"
+
+controller:
+  resources:
+    requests:
+      cpu: 2
+      memory: 4096Mi
+    limits:
+      cpu: 2
+      memory: 4096Mi
