@@ -3,6 +3,9 @@ marp: true
 ---
 <!-- paginate: true -->
 
+# Part 1 - Deployment
+
+---
 
 # Learning about data pipelines
 
@@ -12,11 +15,11 @@ This session will be all about the components of data pipelines. Specifically, w
   - Transformer/Loader: Apache NiFi
   - Database: OpenSearch
 
-However, to demonstrate the pipeline working, we need an environment to gather data from. So, we will be redeploying the 5G core network and MonArch monitoring system from yesterday.
+However, to demonstrate the pipeline working, we need an environment to gather data from. So, we will be re-deploying the 5G core network and MonArch monitoring system from yesterday.
 
 ---
 
-# Redeploying the 5G Core
+# Re-deploying the 5G Core
 
 <style>
 blockquote {
@@ -35,11 +38,9 @@ Now we will run `day1.sh`, which will re-create the entire Kubernetes setup we h
 
 We will be extracting logs from every Kubernetes container using Filebeat, memory and CPU usage of the containers and hosts using Metricbeat, and network connection information using Packetbeat. We will also demonstrate how to extend Metricbeat to extract metrics from the Prometheus exporters in MonArch as well.
 
-> Est: 5 mins
-
 ---
 
-# How do we create a data pipeline? (1/2)
+# How do we create a data pipeline?
 
 Generally, in production we want to deploy a data pipeline in the following order:
   1. Database
@@ -51,7 +52,7 @@ The database and buffer are deployed first as they only receive events and do no
 
 ---
 
-# How do we create a data pipeline? (2/2)
+# How do we create a data pipeline? (2)
 
 However, for testing, it is easier to deploy the pipeline like this:
   1. Database
@@ -89,9 +90,9 @@ Now, if you run a kubectl command, such as,  `kubectl get pods`, it will run tha
 
 ---
 
-# Access OpenSearch dashboards (2/2)
+# Access OpenSearch dashboards
 
-To access the dashboards, navigate to https://localhost:32001. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully. We will return to OpenSearch dashboards later on.
+To access the dashboards, navigate to http://localhost:32001. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully. We will return to OpenSearch dashboards later on.
 <style>
 img[alt~="center"] {
   display: block;
@@ -114,7 +115,7 @@ This deploys both a Kafka cluster and Kafka-UI, which can be used to configure K
 
 ---
 
-# What is Kafka? (1)
+# What is Kafka?
 
 Kafka is a distributed event store. Events in Kafka are mainly divided into *topics*, which are essentially categories of events. Topics are divided into partitions. These partitions allow events in a topic to be distributed across different instances of Kafka, and replicated partitions can provide fault-tolerance.
 
@@ -139,7 +140,7 @@ Each event must be present in at least *min in-sync replicas* before being succe
 
 ---
 
-# Configuring Kafka (1)
+# Configuring Kafka
 
 **1. Accessing Kafka-UI**
 Once the deployment is done, the UI is accessible at http://localhost:32000.
@@ -157,7 +158,7 @@ Then select "Create".
 
 # Configuring Kafka (2)
 
-**3. Exercise**
+**3. Mini-Exercise**
 
 Repeat the prior steps with the topics "metricbeat", "packetbeat", and "prometheus". All other settings should remain the same. Your final screen topics screen should look something like this:
 
@@ -167,7 +168,7 @@ Hint: Click on the "Topics" button in the sidebar again after creating a topic t
 
 ---
 
-# Beats (1)
+# Beats
 
 Now we deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:
 ```
@@ -190,13 +191,19 @@ Beats are designed to be deployed together, and have a unified schema. Thus, one
 
 ---
 
+# Checking Output
+
+If you check the Kafka UI at http://localhost:32000, you should be able to see messages in all the topics if you navigate to Topics on the left menu. Within each individual topic, you can view the messages within the topic by selecting the "Messages" tab. If you do not see messages, please ask for help.
+
+---
+
 # NiFi
 
 Finally, we are deploying NiFi. Before deploying, To do this, run:
 ```
 ./deploy-nifi.sh
 ```
-Note: you will need to run this with **sudo**, as we are copying the geoip database to a system directory.
+Note: this script includes sudo commands, as we are copying the geoip database to a system directory.
 
 This script does the following:
 - deploys a NiFi cluster of 3 nodes
@@ -210,18 +217,22 @@ Once NiFi is ready, you should be able to access it by going to http://localhost
 
 NiFi is a versatile distributed data processor. NiFi allows you to create data processing graphs that can allow you to visually see how data will be processed. 
 
-# How does it work?
+# How does NiFi work?
 NiFi operates using the concept of FlowFiles, which is just a container that can hold any data along with some attributes, which are essentially metadata. This means that FlowFiles inherently do not have any structure at all.
 
-Processors act on FlowFiles and transforms them in some way. There are a vast array of processors that cater to almost any use case, and for use cases that built-in processors are incapable of handling, NiFi also supports calling external scripts as well. 
+Processors act on FlowFiles and transforms them in some way. There are a vast array of processors that cater to almost any use case, and for use cases that built-in processors are incapable of handling, NiFi also supports calling external scripts as well. You can integrate ML with NiFi directly using processors instead of interfacing with Kafka.
 
 ---
 
-# What is NiFi? (2)
+# How does NiFi work? (2)
 
 Since FlowFiles have no structure, typically services need to be specified so the processor knows how to parse the FlowFile and what format to output it in. For example, the `JSONTreeReader` service reads the FlowFile and parses it into one or more JSON object for processing. The `JSONRecordSetWriter` writes an array of JSON objects as its output.
 
-Services are not limited to just parsing FlowFiles, they also provide services such as SSL authentication, OpenSearch integration, caching, lookups, and more.
+Services are not limited to just parsing FlowFiles, they also provide services such as SSL authentication, OpenSearch integration, caching, lookups, and more. 
+
+---
+
+# Part 2 - Configuration
 
 ---
 
@@ -326,7 +337,7 @@ Now, for each processor, click on it once, and in the "Operate" panel on the lef
 
 Now, for each processor, right click on it and select "Copy". Then right click on any blank space and select "Paste" to paste a copy of the processor with identical configuration.
 
-### Exercise
+### Mini-Exercise
 
 Configure the processors for the *metricbeat*, *packetbeat*, and *prometheus* topics.
 
@@ -348,11 +359,15 @@ In the "View as" selection box, select "formatted" to see the formatted JSON.
 
 Define a GeoEnrichIPRecord processor to enrich the destination IP of events from Packetbeat.
 
-Hint: the Maxmind database is located at /opt/nifi/nifi-current/state/GeoLite2-City.mmdb
+Hint: the Maxmind database is located at `/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`. Ensure that both the `found` and `not found` are connected and not terminated (we do not want to drop events just because GeoIP failed).
 
-You will need to redo the relationships between the events.
-
-Set the city record path to be `/dest
+Use the following settings:
+- City Record Path: `/destination/geo/city_name`
+- Latitude Record Path: `/destination/geo/location/lat`
+- Longitude Record Path: `/destination/geo/location/lon`
+- Country Record Path: `/destination/geo/country_name`
+- Country ISO Code Record Path: `/destination/geo/country_iso_code`
+- Country Postal Code Record Path: `/destination/geo/postal_code`
 
 ---
 
@@ -392,11 +407,11 @@ Find the section that looks like this:
 
 These are the endpoints for Prometheus collectors. We want to add the metrics from MonArch as well. 
 
-Go to http://localhost:30095/targets?search=, and find the endpoints. Two of them have already been configured. Add the remaining endpoints on that page in the same format, then redeploy beats by running `./deploy-beats.sh`.
+Go to http://localhost:30095/targets?search=, and find the endpoints. Two of them have already been configured. Add the remaining endpoints on that page in the same format, then re-deploy beats by running `./deploy-beats.sh`.
 
 ---
 
-# Dashboard
+# Searching Data
 
 Now that everything is deployed, we can now visualize it in OpenSearch. Go to http://localhost:32001. Log in using username `admin` and password `admin` if prompted. 
 
@@ -406,20 +421,34 @@ Select the menu, and click on "Discover". You should see a realtime view of all 
 
 ---
 
-# Dashboard (2)
+# Searching Data (2)
 
-It should look like this:
+Discover should look like this:
 
 ![height:400px center](images/dashboard.png)
+
+Experiment by selecting fields to filter for on the left, or searching for keywords in the Search bar.
 
 ---
 
 # Exercise 4 - Visualization
 
-Create a visualization to view data. To do this, select the menu button, and select Visualize.
+Create a visualization to view data. To do this, select the menu button, and navigate to Visualize.
 
 Create a new "Line" visualization, and choose the "prometheus-metricbeat" index pattern.
 
-Set the metric as count, and use a date histogram.
+Keep the metric as count, add a date histogram as the X-axis. Press save on the top right and give it a title and optionally a description.
 
-Create some more visualizations by experimenting with other metrics!
+Create some more visualizations by experimenting with other metrics.
+
+---
+
+# Exercise 5 - Dashboards
+
+Create a dashboard to view multiple visualizations. Select the menu button, and navigate to Dashboards.
+
+Select "Create new dashboard", and add the visualizations you created. Press save on the top right and give it a title and optionally a description.
+
+---
+
+# Thank you!
