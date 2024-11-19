@@ -28,6 +28,13 @@ blockquote {
 }
 </style>
 
+<style>
+img[alt~="center"] {
+  display: block;
+  margin: 0 auto;
+}
+</style>
+
 To begin, we will use `git clone` to fetch the source code of our data pipeline and re-create the entire Kubernetes setup we had deployed yesterday. 
 ```
 cd ~
@@ -60,14 +67,15 @@ However, for testing, it is easier to deploy the pipeline like this:
   3. Extractors
   4. Transformers/Loaders
 
-By deploying the pipeline in this order, the extractors will send a bunch of events into the buffer first, which will allow you to inspect the structure of each event. This makes it much easier to check the events' schema as well as verify whether the information needed by the transformer is available. This will be the order that we will be deploying the pipeline today.
+By deploying the pipeline in this order, the extractors will send a bunch of events into the buffer first, which will allow you to inspect the structure of each event. This makes it much easier to check the events' schema as well as verify whether the information needed by the transformer is available. We will deploy our pipeline using this order.
 
 ---
 
 # Deploying the database
-Let's first deploy the OpenSearch cluster. Ensure you are in the `data-pipeline` directory, then run:
+First, let's deploy the OpenSearch cluster. Run the following:
 ```
-./deploy-opensearch.sh
+cd ~/data-pipeline
+./deploy-opensearch.sh 
 ```
 > Note: you will need to type your password (`user`) for this script as it uses `sudo` internally
 
@@ -75,8 +83,6 @@ This script does the following:
   - Create a highly available OpenSearch cluster of 3 pods
   - Provision an instance of OpenSearch dashboards
   - Configure certificate-based authentication
-
-If you check the contents of the script, you will also see the command `sudo sysctl -w vm.max_map_count=786432`. OpenSearch requires a lot of memory-mapped files for optimal performance, and this command increases the maximum number of mapped files permitted by the operating system.
 
 ---
 
@@ -92,15 +98,26 @@ Now, if you run a kubectl command, such as,  `kubectl get pods`, it will run tha
 
 ---
 
+# What is OpenSearch?
+
+OpenSearch is a **fork** of ElasticSearch developed by Amazon. It was forked because the company developing ElasticSearch, Elastic NV, changed its license to restrict commercial usage.
+
+Due to its common ancestry, many open-source tools that work with ElasticSearch also work with OpenSearch, including NiFi.
+
+---
+
+# How does OpenSearch Work?
+
+Data stored in OpenSearch using indexes. Each index consists of a number of primary shards, which allow data to be spread across multiple machines. These shards can be configured with replicas to provided high availability.
+
+![height:300px center](images/opensearch.png)
+
+---
+
 # Access OpenSearch dashboards
 
 To access the dashboards, navigate to http://localhost:32001. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully. We will return to OpenSearch dashboards later on.
-<style>
-img[alt~="center"] {
-  display: block;
-  margin: 0 auto;
-}
-</style>
+
 ![height:300px center](images/dashboards-intro.png)
 
 ---
@@ -140,6 +157,10 @@ Replication factor controls the number of copies of each partition. Having a rep
 ### Min in-sync replicas
 Each event must be present in at least *min in-sync replicas* before being successfully written. This minimizes the probability of data loss, but also means that if there are fewer than that many replicas of a partition are present, a partition could no longer be written to. 
 
+### Data persistence
+
+Unlike message queues like RabbitMQ, data stored in Kafka topics not deleted when events are processed. Deletion is instead controlled by a data retention setting. This means that if an issue occurs in the transformer causing events to be corrupted, events can be re-ingested from the same Kafka topic before retention expires. Kafka consumers need to keep track of what events it has read from a topic.
+
 ---
 
 # Configuring Kafka
@@ -166,11 +187,11 @@ Repeat the prior steps with the topics "metricbeat", "packetbeat", and "promethe
 
 ![height:300px center](images/kafka-topics.png)
 
-Hint: Click on the "Topics" button in the sidebar again after creating a topic to go back.
+> Hint: Click on the *Topics* button in the sidebar again after creating a topic to access the "Add a Topic" button quickly.
 
 ---
 
-# Beats
+# Deploy Beats
 
 Now we deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:
 ```
@@ -183,7 +204,7 @@ Filebeat, Metricbeat, and Packetbeat all produce events from different types of 
 
 ---
 
-# Beats (2)
+# Deploy Beats (2)
 
 **Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with Monarch. It also integrates with kube-state-metrics, which provide metrics on the entire Kubernetes cluster. Hence, we also deploy this in the `deploy-beats.sh` script.
 
@@ -441,7 +462,7 @@ The path to the `country_name` is: `/source/geo/country_name`, and the path to `
 Add a GeoEnrichIPRecord processor to enrich the destination IP of events from Packetbeat.
 
 Set the following settings on the GeoEnrichIPRecord processor:
-- MaxMind Database File: ``/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`
+- MaxMind Database File: `/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`
 - City Record Path: `/destination/geo/city_name`
 - Latitude Record Path: `/destination/geo/location/lat`
 - Longitude Record Path: `/destination/geo/location/lon`
@@ -455,9 +476,17 @@ Set the following settings on the GeoEnrichIPRecord processor:
 
 **Mini Exercise:** find the correct `IP Address Record Path` for the destination IP by inspecting queued FlowFiles as shown above. Also set the Record Reader and Record Writer to appropriate values.
 
+**See next slide for the answer.**
+
 ---
 
 # NiFi Enrichment (3)
+
+**Exercise answer**: Fill in `/destination/ip` as the `IP Address Record Path` in the properties of the GeoEnrichIPRecord processor.
+
+---
+
+# NiFi Enrichment (4)
 
 Hover over the GeoEnrichIPRecord processor to show the arrow icon, then drag it and **connect it to the PutElasticsearchRecord processor you configured for Packetbeat** to create a connection for the `found` relationship.
 
@@ -467,7 +496,7 @@ Finally, open the settings of the GeoEnrichIPRecord processor and terminate the 
 
 ---
 
-# NiFi Enrichment (4)
+# NiFi Enrichment (5)
 
 If done correctly, your connection should look like the diagram on the right.
 ![bg right fit](images/nifi-enrich.png)
@@ -476,7 +505,7 @@ Now, stop both the ConsumeKafkaRecord_2_6 and PutElasticsearchRecord processors 
 
 ---
 
-# NiFi Enrichment (5)
+# NiFi Enrichment (6)
 
 Click on the `success` relationship between ConsumeKafkaRecord_2_6 and PutElasticsearchRecord. A blue dot should appear in the arrowhead of the relationship. 
 
@@ -486,7 +515,7 @@ Drag the blue dot and connect it to the GeoEnrichIPRecord processor.
 
 ---
 
-# NiFi Enrichment (6)
+# NiFi Enrichment (7)
 
 Finally, start all the processors. The final diagram should look like the image on the right.
 
@@ -496,13 +525,32 @@ Notice that almost all events are being sent to the `not found` relationship. Th
 
 ---
 
-# Exercise - Dead Letter Queue
+# Error handling
 
-Define PutFile processors to place failed FlowFiles into in order to create a Dead Letter Queue.
+## Dead Letter Queue
 
-Define one for `parse.failure` in "ConsumeKafkaRecord_2_6", and `failure` in PutElasticsearchRecord.
+Add a new PutFile processor to store failed events to disk in order to create a Dead Letter Queue.
 
-Set the directory to be a subdirectory of `/opt/nifi/nifi-current/state/`.
+Double click the PutFile processor and set the following property:
+- Directory: `/opt/nifi/nifi-current/state/dlq`
+
+Now you need to configure your existing processors to send error events to the dead letter queue.
+
+Hover over a ConsumeKafkaRecord_2_6 (doesn't matter which one), then drag its arrow to the PutFile processor, and specify the `parse.failure` relationship for the connection.
+
+Repeat for all other ConsumeKafkaRecord_2_6 processors.
+
+---
+
+## Dead Letter Queue (2)
+
+Now, hover over a PutElasticsearchRecord (doesn't matter which one), then drag its arrow to the PutFile processor, and specify the `failure` relationship for the connection.
+
+Also, drag the same PutElasticsearchRecord's arrow to the PutFile processor again, and specify the `errors` relationship for the connection.
+
+Repeat for 
+
+This creates a Dead Letter Queue that will store all events that the processor could not handle for some reason or another.
 
 ---
 
