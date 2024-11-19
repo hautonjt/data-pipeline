@@ -28,15 +28,15 @@ blockquote {
 }
 </style>
 
-To begin, we will use `git clone` to fetch the source code of our data pipeline.
+To begin, we will use `git clone` to fetch the source code of our data pipeline and re-create the entire Kubernetes setup we had deployed yesterday. 
 ```
 cd ~
 git clone https://github.com/hautonjt/data-pipeline
 cd data-pipeline
+./day1.sh
 ```
-Now we will run `day1.sh`, which will re-create the entire Kubernetes setup we had deployed yesterday. 
 
-We will be extracting logs from every Kubernetes container using Filebeat, memory and CPU usage of the containers and hosts using Metricbeat, and network connection information using Packetbeat. We will also demonstrate how to extend Metricbeat to extract metrics from the Prometheus exporters in MonArch as well.
+We will be extracting logs from every Kubernetes container using Filebeat, memory and CPU usage of the containers and hosts using Metricbeat, and network connection information using Packetbeat. We will also demonstrate how to extend Metricbeat to extract metrics from the Prometheus exporters in Monarch as well.
 
 ---
 
@@ -69,6 +69,8 @@ Let's first deploy the OpenSearch cluster. Ensure you are in the `data-pipeline`
 ```
 ./deploy-opensearch.sh
 ```
+> Note: you will need to type your password (`user`) for this script as it uses `sudo` internally
+
 This script does the following:
   - Create a highly available OpenSearch cluster of 3 pods
   - Provision an instance of OpenSearch dashboards
@@ -183,7 +185,7 @@ Filebeat, Metricbeat, and Packetbeat all produce events from different types of 
 
 # Beats (2)
 
-**Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with MonArch. It also integrates with kube-state-metrics, which provide metrics on the entire Kubernetes cluster. Hence, we also deploy this in the `deploy-beats.sh` script.
+**Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with Monarch. It also integrates with kube-state-metrics, which provide metrics on the entire Kubernetes cluster. Hence, we also deploy this in the `deploy-beats.sh` script.
 
 **Packetbeat** captures connection information from all network interfaces present in the current running machine. This includes ingress traffic, egress traffic, and network traffic traffic between pods.
 
@@ -203,13 +205,11 @@ Finally, we are deploying NiFi. Before deploying, To do this, run:
 ```
 ./deploy-nifi.sh
 ```
-Note: this script includes sudo commands, as we are copying the geoip database to a system directory.
+> Note: you will need to type your password (`user`) for this script as it uses `sudo` to copy the geoip database to a system directory.
 
 This script does the following:
 - deploys a NiFi cluster of 3 nodes
 - deploys a Zookeeper cluster of 3 nodes (used by NiFi for maintaining configuration and cluster information)
-
-Once NiFi is ready, you should be able to access it by going to http://localhost:32002/nifi.
 
 ---
 
@@ -226,7 +226,7 @@ Processors act on FlowFiles and transforms them in some way. There are a vast ar
 
 # How does NiFi work? (2)
 
-Since FlowFiles have no structure, typically services need to be specified so the processor knows how to parse the FlowFile and what format to output it in. For example, the `JSONTreeReader` service reads the FlowFile and parses it into one or more JSON object for processing. The `JSONRecordSetWriter` writes an array of JSON objects as its output.
+Since FlowFiles have no structure, typically services need to be specified so the processor knows how to parse the FlowFile and what format to output it in. For example, the `JsonTreeReader` service reads the FlowFile and parses it into one or more JSON object for processing. The `JsonRecordSetWriter` writes an array of JSON objects as its output.
 
 Services are not limited to just parsing FlowFiles, they also provide services such as SSL authentication, OpenSearch integration, caching, lookups, and more. 
 
@@ -236,132 +236,212 @@ Services are not limited to just parsing FlowFiles, they also provide services s
 
 ---
 
-# Configuring NiFi
+# Configuring NiFi Services
 
-Now that NiFi has been deployed, we will need to start configuring it to consume events from Kafka and send them to OpenSearch.
+After NiFi has been deployed, we can start configuring it to consume events from Kafka and send them to OpenSearch. Once NiFi is ready, you should be able to access it by going to http://localhost:32002/nifi.
 
-Before we begin, we need to define the services our processors will need. To do this, find the Cog underneat the "NiFi Flow" text on the middle-left side of the screen. Selecting this should pop up the NiFi Flow Configuration screen. Then, select the "Controller Services" tab.
+Before we begin, we need to define the services our processors will need. To do this, find the Settings button underneath the "NiFi Flow" text on the middle-left side of the screen. Selecting this should pop up the NiFi Flow Configuration screen. Then, select the "Controller Services" tab.
 
-![height:300px center](images/nifi-settings.png)
+![height:300px center](images/nifi-settings-updated.png)
 
 ---
 
-# Configuring NiFi (2)
+# Configuring NiFi Services (2)
 
 After that, press the "+" symbol near the top-right side of the table to add a service. We will need to add the following services:
-  - JsonTreeReader
-  - JsonRecordSetWriter
-  - StandardRestrictedSSLContextService
-  - ElasticSearchClientServiceImpl
+  - `JsonTreeReader`
+  - `JsonRecordSetWriter`
+  - `StandardRestrictedSSLContextService`
+  - `ElasticSearchClientServiceImpl`
 
-The JsonTreeReader and JsonRecordSetWriter can both be enabled immediately by clicking on the lightning bolts to the right of their respective rows and selecting "Enable".
+The JsonTreeReader and JsonRecordSetWriter can both be enabled immediately by clicking on the lightning bolts to the right of their respective rows and selecting "Enable" in the window that pops up.
+
+> Note: once "Enable" has been clicked, the button will change to a "Cancel" button, so clicking again will cause the enable to be cancelled.
 
 ---
 
-# Configuring NiFi (3)
+# Configuring NiFi Services (3)
 
 StandardRestrictedSSLContextService needs to be configured by clicking the Settings button on its row, then going to the Properties tab. Fill in the following properties:
-  - Keystore Filename: keytool/keystore.p12
-  - Keystore Password: keystore
+  - Keystore Filename: `keytool/keystore.p12`
+  - Keystore Password: `keystore`
   - Key Password: (leave blank)
-  - Keystore Type: PCKS12
-  - Truststore Filename: keytool/truststore.p12
-  - Truststore Password: truststore
-  - Truststore Type: PCKS12
+  - Keystore Type: `PCKS12`
+  - Truststore Filename: `keytool/truststore.p12`
+  - Truststore Password: `truststore`
+  - Truststore Type: `PCKS12`
 
 Then select apply.
 
 ---
 
-# Configuring NiFi (4)
+# Configuring NiFi Services (4)
 
 Next, we need to configure ElasticSearchClientServiceImpl. Click on the settings button to the right, and nagivate to Properties. Enter the following settings:
-- HTTP Hosts: https://opensearch-cluster-master:9200
-- Username: admin
-- Password: admin
-- SSL Context Service: StandardRestrictedSSLContextService
+- HTTP Hosts: `https://opensearch-cluster-master:9200`
+- Username: `admin`
+- Password: `admin`
+- SSL Context Service: `StandardRestrictedSSLContextService`
 
-Click apply, then enable both the StandardRestrictedSSLContextService and the ElasticSearchClientServiceImpl. Exit out of the NiFi Flow Configuration screen.
+Click apply, then enable both the StandardRestrictedSSLContextService and the ElasticSearchClientServiceImpl.
 
 ---
 
-# Configuring NiFi (5)
+# Configuring NiFi Processors
 
-In the top left of the screen, find the Processors icon. Click and drag the icon to create a new processor. Find the "ConsumeKafkaRecord_2_6" processor and add it.
+Double check to ensure that all your services are properly enabled. Every service should have a crossed-out lightning bolt symbol as shown below:
+![height:300px center](images/nifi-enable.png)
+
+Once checked, exit out of the NiFi Flow Configuration screen. Now that all the services we need are enabled, we can now add the processors. In the top left of the screen, find the Processors icon. Click and drag the icon to create a new processor. Find the "ConsumeKafkaRecord_2_6" processor and add it.
+
+---
+
+# Configuring NiFi Processors (2)
 
 Double click on the processor to open its settings, then set the following properties:
-- Kafka Brokers: kafka:9092
-- Topic Name(s): filebeat
-- Value Record Reader: JsonTreeReader
-- Record Value Writer: JsonRecordSetWriter
-- Group ID: nifi
-- Security Protocol: SASL_PLAINTEXT
-- SASL Mechanism: PLAIN
-- Username: user1
-- Password: kafka
+- Kafka Brokers: `kafka:9092`
+- Topic Name(s): `filebeat`
+- Value Record Reader: `JsonTreeReader`
+- Record Value Writer: `JsonRecordSetWriter`
+- Group ID: `nifi`
+- Security Protocol: `SASL_PLAINTEXT`
+- SASL Mechanism: `PLAIN`
+- Username: `user1`
+- Password: `kafka`
+
+> Note: The username and password fields do not appear until SASL Mechanism is set to `plain`.
 
 ---
 
-# Configuring NiFi (6)
+# Configuring NiFi Processors (3)
 
 Create a PutElasticsearchRecord processor, and configure the following settings:
-- Index: filebeat
-- Client Service: ElasticSearchClientServiceImpl
-- Record Reader: JsonTreeReader
+- Index: `filebeat`
+- Client Service: `ElasticSearchClientServiceImpl`
+- Record Reader: `JsonTreeReader`
 
-Click apply. Now, hover over the ConsumeKafkaRecord_2_6 processor until an arrow appears in the middle of it. Drag the arrow to the PutElasticsearchRecord processor. Select the "success" relationship, and apply.
-
-Open the ConsumeKafkaRecord_2_6 settings again. Go to the "Relationships" tab, and select "terminate" under `parse.failure`, and apply.
-
-Open the PutElasticsearchRecord processor settings, go to the "Relationships" tab, and select "terminate" for all relationships.
+Click apply. 
 
 ---
 
-# Configuring NiFi (7)
+# Configuring NiFi Relationships
+
+NiFi processors are connected with each other using relationships. All relationships need to be configured in order for a NiFi processor to be runnable. To view a processor's relationships, double click the processor to open its settings, then navigate to the "Relationships" tab to view its relationships. 
+
+For example, the "ConsumeKafkaRecord_2_6" processor has two relationships: `success`, and `parse.failure`. Each relationship has a "terminate" and a "retry" box.
+
+---
+
+# Configuring NiFi Relationships
+
+Below each relationship is a brief explanation. For example, in our case, the event will be sent to the `parse.failure` relationship if it is not a valid JSON file. Every relationship has both a "terminate" and "retry" option.  
+
+![bg right fit](images/nifi-relationships.png)
+
+---
+
+# Configuring NiFi Relationships
+
+Enabling the "retry" option will cause the event to be re-processed by the processor a set number of times in a configurable manner. The "terminate" option causes the event to be dropped. Both "retry" and "terminate" options can be enabled, which causes the event to be dropped after all retries have been exhausted.
+
+Any relationship that does not have the "terminate" option enabled must be connected to another processor, even if "retry" is enabled on that relationship. We will be connecting our ConsumeKafkaRecord_2_6 processor to our PutElasticsearchRecord processor.
+
+---
+
+# Configuring NiFi Relationships
+
+First, we need to terminate all the relationships we don't need. Open the ConsumeKafkaRecord_2_6 settings again. Go to the "Relationships" tab, and select "terminate" under `parse.failure`, and apply. 
+
+Then, open the PutElasticsearchRecord processor settings, go to the "Relationships" tab, and select "terminate" for all relationships. We will be handling errors later. Exit out of the processor's settings.
+
+---
+
+# Configuring NiFi Relationships
+
+Now, hover over the ConsumeKafkaRecord_2_6 processor until an arrow appears in the middle of it. Drag the arrow to the PutElasticsearchRecord processor. Select the `success` relationship, and apply. This creates a connection for the `success` relationship between the ConsumeKafkaRecord_2_6 and the PutElasticsearchRecord processors.
+
+![height:300px center](images/nifi-link.png)
+
+
+---
+
+# Running NiFi processors
 The screen should now look like this:
-![height:300px center](images/nifi-process.png)
+![bg right fit](images/nifi-process.png)
 
-Now, for each processor, click on it once, and in the "Operate" panel on the left, click the play button to run the processor.
+Now, for each processor, click on it once, and in the "Operate" panel on the left, select the "Play" button to run the processor.
+
+> Note: if your processors are still displaying a yellow triangle instead of a "Stop" symbol, it has not been configured correctly. You can hover over the triangle to see the error. Please ask for help if you are stuck and the yellow triangle doesn't go away.
 
 ---
 
-# Configuring NiFi (8)
+# Running NiFi processors (2)
 The screen should now look like this:
-![height:300px center](images/nifi-process.png)
+![bg right fit](images/nifi-running-relationship.png)
 
-Now, for each processor, click on it once, and in the "Operate" panel on the left, click the play button to run the processor.
+You can stop the processor again by clicking on it once, then selecting the "Stop" button in the "Operate" panel on the left.
+
+> Note: once a processor is running, its properties can no longer be edited. To edit the properties, stop the processor first. Once the processor is stopped, its properties can be edited again.
 
 ---
 
-# Configuring NiFi (9)
+# Configuring Other Processors
 
-Now, for each processor, right click on it and select "Copy". Then right click on any blank space and select "Paste" to paste a copy of the processor with identical configuration.
+**Duplicating processors**: To duplicate a processor, right click on it and select "Copy". Then right click on any blank space and select "Paste" to paste a copy of the processor with identical configuration.
+
+Hint: You can select multiple processors by holding down "Shift".
 
 ### Mini-Exercise
 
 Configure the processors for the *metricbeat*, *packetbeat*, and *prometheus* topics.
 
-Ensure that both the Topic Name in the ConsumeKafkaRecord_2_6 processor and the Index in the PutElasticsearchRecord processor are set correctly. **For Prometheus, use the Index prometheus-metricbeat.**
+Ensure that both the Topic Name in the ConsumeKafkaRecord_2_6 processor and the Index in the PutElasticsearchRecord processor are set correctly.
 
 ---
 
 # Inspecting FlowFiles
 
-NiFi lets you inspect queued FlowFiles pretty easily. To do this, first stop the PutElasticsearchRecord processor. Then, right click the queue (i.e., the box labeled "success"). Then select "List queue". This shows a list of all FlowFiles in the queue. 
+NiFi lets you inspect queued FlowFiles pretty easily. To do this, **you must first stop the PutElasticsearchRecord processor**. Then, right click the queue (i.e., the box labeled "success"). Then select "List queue". This shows a list of all FlowFiles in the queue. 
 
-You can select the "eye" icon to view its content. (If you get an error, ensure you stopped the PutElasticsearchRecord processor that was downstream from the queue).
+You can select the "eye" icon to view its content. **(If you get an error, ensure you stopped the PutElasticsearchRecord processor that was downstream from the queue.)**
 
 In the "View as" selection box, select "formatted" to see the formatted JSON.
 
 ---
 
-# Exercise 1 - Enrichment
+# Common Issues
 
-Define a GeoEnrichIPRecord processor to enrich the destination IP of events from Packetbeat.
+If no events are arriving at your ConsumeKafkaRecord_2_6 processors after a while, ensure that the settings are correct by double clicking it and verifying the processor's properties. Common mistakes include:
+- Leaving the Kafka Brokers value as `localhost:9092` instead of setting it to `kafka:9092`
+- Typos being present in the Topic Name(s) field
 
-Hint: the Maxmind database is located at `/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`. Ensure that both the `found` and `not found` are connected and not terminated (we do not want to drop events just because GeoIP failed).
+---
 
-Use the following settings:
+# Record Paths
+
+NiFi operates on JSON files using "Record Path" syntax, and is analogous to a file-path, with the root directory `/` being the root of the JSON object, and sub-keys being folder names. For example in the object:
+
+```json
+{
+  "source": {
+    "ip": "192.168.1.1",
+    "ip.keyword": "192 168 1 1",
+    "geo": {
+      "country_name": "Unknown"
+    }
+  }
+}
+```
+The path to the `country_name` is: `/source/geo/country_name`, and the path to `ip.keyword` is `/source/ip.keyword`.
+
+---
+
+# NiFi Enrichment
+
+Add a GeoEnrichIPRecord processor to enrich the destination IP of events from Packetbeat.
+
+Set the following settings on the GeoEnrichIPRecord processor:
+- MaxMind Database File: ``/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`
 - City Record Path: `/destination/geo/city_name`
 - Latitude Record Path: `/destination/geo/location/lat`
 - Longitude Record Path: `/destination/geo/location/lon`
@@ -371,22 +451,67 @@ Use the following settings:
 
 ---
 
-# Exercise 2 - Dead Letter Queue
+# NiFi Enrichment (2)
+
+**Mini Exercise:** find the correct `IP Address Record Path` for the destination IP by inspecting queued FlowFiles as shown above. Also set the Record Reader and Record Writer to appropriate values.
+
+---
+
+# NiFi Enrichment (3)
+
+Hover over the GeoEnrichIPRecord processor to show the arrow icon, then drag it and **connect it to the PutElasticsearchRecord processor you configured for Packetbeat** to create a connection for the `found` relationship.
+
+Now, hover over the GeoEnrichIPRecord processor and drag its arrow to the PutElasticsearchRecord processor *again*. This time, create the connection for the `not found` relationship.
+
+Finally, open the settings of the GeoEnrichIPRecord processor and terminate the `original` relationship.
+
+---
+
+# NiFi Enrichment (4)
+
+If done correctly, your connection should look like the diagram on the right.
+![bg right fit](images/nifi-enrich.png)
+
+Now, stop both the ConsumeKafkaRecord_2_6 and PutElasticsearchRecord processors for Packetbeat.
+
+---
+
+# NiFi Enrichment (5)
+
+Click on the `success` relationship between ConsumeKafkaRecord_2_6 and PutElasticsearchRecord. A blue dot should appear in the arrowhead of the relationship. 
+
+Drag the blue dot and connect it to the GeoEnrichIPRecord processor.
+
+![bg right fit](images/nifi-enrich-insert.png)
+
+---
+
+# NiFi Enrichment (6)
+
+Finally, start all the processors. The final diagram should look like the image on the right.
+
+Notice that almost all events are being sent to the `not found` relationship. This is normal as most of the traffic in your Kubernetes cluster consists mainly of connections between containers with private IP addresses.
+
+![bg right fit](images/nifi-enrich-final.png)
+
+---
+
+# Exercise - Dead Letter Queue
 
 Define PutFile processors to place failed FlowFiles into in order to create a Dead Letter Queue.
 
-Define one for `parse.failure` in ConsumeKafkaRecord_2_6, and `failure` in PutElasticsearchRecord.
+Define one for `parse.failure` in "ConsumeKafkaRecord_2_6", and `failure` in PutElasticsearchRecord.
 
 Set the directory to be a subdirectory of `/opt/nifi/nifi-current/state/`.
 
 ---
 
-# Exercise 3 - Prometheus Metrics
+# Exercise - Prometheus Metrics
 
 In the `beats` folder in `data-pipeline`, you should be able to find a folder called `metricbeat-prometheus.yaml`.
 
 Find the section that looks like this:
-```
+```yaml
     metricbeat.modules:
       - module: prometheus
         period: 5s
@@ -403,11 +528,15 @@ Find the section that looks like this:
 
 ---
 
-# Exercise 3 - Prometheus Metrics (2)
+# Exercise - Prometheus Metrics (2)
 
-These are the endpoints for Prometheus collectors. We want to add the metrics from MonArch as well. 
+These are the endpoints for Prometheus collectors. We want to add the metrics from Monarch for slice monitoring metrics.
 
-Go to http://localhost:30095/targets?search=, and find the endpoints. Two of them have already been configured. Add the remaining endpoints on that page in the same format, then re-deploy beats by running `./deploy-beats.sh`.
+Go to http://localhost:30095/targets?search=, and find the endpoints. Two of them have already been configured. Add the AMF, SMF, and UPF endpoints on that page in the same format, then re-deploy beats by running the following command in the `~/data_pipeline` folder:
+```
+./deploy-beats.sh
+```
+> Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file
 
 ---
 
@@ -415,35 +544,39 @@ Go to http://localhost:30095/targets?search=, and find the endpoints. Two of the
 
 Now that everything is deployed, we can now visualize it in OpenSearch. Go to http://localhost:32001. Log in using username `admin` and password `admin` if prompted. 
 
-Select "Explore on my own". Select the menu button on the top left, scroll down and select "Dashboards Management". Create index patterns with the names "filebeat", "packetbeat", "metricbeat", "prometheus-metricbeat", and "*beat".
+Select "Explore on my own". Select the menu button on the top left, scroll down and select "Dashboards Management". 
 
-Select the menu, and click on "Discover". You should see a realtime view of all your raw data.
+Create index patterns with the names "filebeat", "packetbeat", "metricbeat", "prometheus", and "*beat,prometheus". Set the "Time field" to the value `@timestamp` for all of them.
 
 ---
 
 # Searching Data (2)
 
-Discover should look like this:
+Open the menu, and select "Discover". Discover should look like this:
 
-![height:400px center](images/dashboard.png)
+![height:200px center](images/dashboard.png)
 
-Experiment by selecting fields to filter for on the left, or searching for keywords in the Search bar.
+If you do not see any data, you can change the search time frame on the top right input to the left of the "Refresh" button. A relative time of "Past 1 hour" should yield some results.
+
+You can also change the index patern using the field on the left side of the screen, to the left of the search box.
+
+> Note: it is normal for the data in the "filebeat" index pattern to be older than the others.
 
 ---
 
-# Exercise 4 - Visualization
+# Exercise - Visualization
 
 Create a visualization to view data. To do this, select the menu button, and navigate to Visualize.
 
 Create a new "Line" visualization, and choose the "prometheus-metricbeat" index pattern.
 
-Keep the metric as count, add a date histogram as the X-axis. Press save on the top right and give it a title and optionally a description.
+Keep the metric as count, then add an X-axis by selecting "Add" below the "Bucket" panel in the bottom right side of the screen. Add a date histogram to the X-axis using the `@timestamp` field. Press save on the top right and give it a title and optionally a description.
 
-Create some more visualizations by experimenting with other metrics.
+Feel free to some more visualizations by experimenting with other metrics.
 
 ---
 
-# Exercise 5 - Dashboards
+# Exercise - Dashboards
 
 Create a dashboard to view multiple visualizations. Select the menu button, and navigate to Dashboards.
 
@@ -451,4 +584,14 @@ Select "Create new dashboard", and add the visualizations you created. Press sav
 
 ---
 
-# Thank you!
+# Next Steps
+
+**Congratulations!**
+You have successfully completed the following:
+- Deployed a highly available data pipeline
+- Configured agents to collect statistics from custom Prometheus exporters
+- Learned about how to transform, enrich, and handle errors in data using NiFi
+- Explored the data being sent by the agents using OpenSearch Dashboards
+
+**What's Next?**
+In the afternoon session, we will dive into [5G slice modeling and dynamic resource scaling](https://sulaimanalmani.github.io/5GDynamicResourceAllocation/slides.pdf).
