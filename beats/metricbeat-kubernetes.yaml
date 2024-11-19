@@ -157,7 +157,7 @@ data:
           templates:
             - config:
                 - module: kubernetes
-                  hosts: ["kube-state-metrics:8080"]
+                  hosts: ["nssdc-kube-state-metrics.monarch.svc:8080"]
                   period: 10s
                   add_metadata: true
                   metricsets:

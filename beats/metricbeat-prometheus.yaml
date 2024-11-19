@@ -20,6 +20,24 @@ data:
         metricsets: ["collector"]
         metrics_path: /metrics
 
+      - module: prometheus
+        period: 5s
+        hosts: ["<insert AMF collector URL>"]
+        metricsets: ["collector"]
+        metrics_path: /metrics  
+
+      - module: prometheus
+        period: 5s
+        hosts: ["<insert SMF collector URL>"]
+        metricsets: ["collector"]
+        metrics_path: /metrics  
+
+      - module: prometheus
+        period: 5s
+        hosts: ["<insert UPF collector URL"]
+        metricsets: ["collector"]
+        metrics_path: /metrics  
+
     processors:
       - add_host_metadata:
 

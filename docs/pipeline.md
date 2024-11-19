@@ -3,6 +3,21 @@ marp: true
 ---
 <!-- paginate: true -->
 
+<style>
+blockquote {
+    font-size: 60%;
+    margin-top: auto;
+}
+</style>
+
+<style>
+img[alt~="center"] {
+  display: block;
+  margin: 0 auto;
+}
+</style>
+
+
 # Part 1 - Deployment
 
 ---
@@ -20,20 +35,6 @@ However, to demonstrate the pipeline working, we need an environment to gather d
 ---
 
 # Re-deploying the 5G Core
-
-<style>
-blockquote {
-    font-size: 60%;
-    margin-top: auto;
-}
-</style>
-
-<style>
-img[alt~="center"] {
-  display: block;
-  margin: 0 auto;
-}
-</style>
 
 To begin, we will use `git clone` to fetch the source code of our data pipeline and re-create the entire Kubernetes setup we had deployed yesterday. 
 ```
@@ -116,7 +117,7 @@ Data stored in OpenSearch using indexes. Each index consists of a number of prim
 
 # Access OpenSearch dashboards
 
-To access the dashboards, navigate to http://localhost:32001. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully. We will return to OpenSearch dashboards later on.
+To access the dashboards, navigate to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully. We will return to OpenSearch dashboards later on.
 
 ![height:300px center](images/dashboards-intro.png)
 
@@ -166,7 +167,7 @@ Unlike message queues like RabbitMQ, data stored in Kafka topics not deleted whe
 # Configuring Kafka
 
 **1. Accessing Kafka-UI**
-Once the deployment is done, the UI is accessible at http://localhost:32000.
+Once the deployment is done, the UI is accessible at <a href="http://localhost:32000" target="_blank">http://localhost:32000</a>.
 **2. Create filebeat topic**
 On the left sidebar, click *Topics*, then on the top right, select "Add a Topic". Fill out the following settings:
   - Topic Name: filebeat
@@ -191,6 +192,50 @@ Repeat the prior steps with the topics "metricbeat", "packetbeat", and "promethe
 
 ---
 
+# Configuring Beats Agents
+
+Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Beats supports Kubernetes natively, but we also want to gather metrics from the Prometheus exporters in Monarch. 
+
+To do this, we will need a configure Metricbeat to find the Prometheus endpoints.
+
+
+---
+
+# Configuring Beats Agents (2)
+
+
+In the `beats` folder in `data-pipeline`, you should be able to find a file called `metricbeat-prometheus.yaml`.
+
+Find the section that looks like this:
+```yaml
+    metricbeat.modules:
+      - module: prometheus
+        period: 5s
+        hosts: ["nssdc-kube-state-metrics.monarch.svc:8080"]
+        metricsets: ["collector"]
+        metrics_path: /metrics
+
+      - module: prometheus
+        period: 5s
+        hosts: ["kpi-calculator-service.monarch.svc:9000"]
+        metricsets: ["collector"]
+        metrics_path: /metrics
+```
+
+---
+
+# Configuring Beats agents
+
+These are the endpoints for Prometheus collectors. We want to add the metrics from Monarch for slice monitoring metrics.
+
+Go to <a href="http://localhost:30095/targets?search=" target="_blank">http://localhost:30095/targets?search=</a>, and find the endpoints. Two of them have already been configured. 
+
+Add the AMF, SMF, and UPF endpoints on that page by replacing the `<insert AMF/SMF/UPF collector URL>` with the endpoints from Prometheus. Ensure that the port is included in the URL, but the `/metrics` subpath is removed.
+
+> Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file
+
+---
+
 # Deploy Beats
 
 Now we deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:
@@ -206,7 +251,7 @@ Filebeat, Metricbeat, and Packetbeat all produce events from different types of 
 
 # Deploy Beats (2)
 
-**Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with Monarch. It also integrates with kube-state-metrics, which provide metrics on the entire Kubernetes cluster. Hence, we also deploy this in the `deploy-beats.sh` script.
+**Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with Monarch. It also integrates with kube-state-metrics, which Monarch installs.
 
 **Packetbeat** captures connection information from all network interfaces present in the current running machine. This includes ingress traffic, egress traffic, and network traffic traffic between pods.
 
@@ -216,7 +261,7 @@ Beats are designed to be deployed together, and have a unified schema. Thus, one
 
 # Checking Output
 
-If you check the Kafka UI at http://localhost:32000, you should be able to see messages in all the topics if you navigate to Topics on the left menu. Within each individual topic, you can view the messages within the topic by selecting the "Messages" tab. If you do not see messages, please ask for help.
+If you check the Kafka UI at <a href="http://localhost:32000" target="_blank">http://localhost:32000</a>, you should be able to see messages in all the topics if you navigate to Topics on the left menu. Within each individual topic, you can view the messages within the topic by selecting the "Messages" tab. If you do not see messages, please ask for help.
 
 ---
 
@@ -231,6 +276,8 @@ Finally, we are deploying NiFi. Before deploying, To do this, run:
 This script does the following:
 - deploys a NiFi cluster of 3 nodes
 - deploys a Zookeeper cluster of 3 nodes (used by NiFi for maintaining configuration and cluster information)
+
+Warning: this deployment takes a long time to complete.
 
 ---
 
@@ -259,7 +306,7 @@ Services are not limited to just parsing FlowFiles, they also provide services s
 
 # Configuring NiFi Services
 
-After NiFi has been deployed, we can start configuring it to consume events from Kafka and send them to OpenSearch. Once NiFi is ready, you should be able to access it by going to http://localhost:32002/nifi.
+After NiFi has been deployed, we can start configuring it to consume events from Kafka and send them to OpenSearch. Once NiFi is ready, you should be able to access it by going to <a href="http://localhost:32002/nifi" target="_blank">http://localhost:32002/nifi</a>.
 
 Before we begin, we need to define the services our processors will need. To do this, find the Settings button underneath the "NiFi Flow" text on the middle-left side of the screen. Selecting this should pop up the NiFi Flow Configuration screen. Then, select the "Controller Services" tab.
 
@@ -438,159 +485,9 @@ If no events are arriving at your ConsumeKafkaRecord_2_6 processors after a whil
 
 ---
 
-# Record Paths
-
-NiFi operates on JSON files using "Record Path" syntax, and is analogous to a file-path, with the root directory `/` being the root of the JSON object, and sub-keys being folder names. For example in the object:
-
-```json
-{
-  "source": {
-    "ip": "192.168.1.1",
-    "ip.keyword": "192 168 1 1",
-    "geo": {
-      "country_name": "Unknown"
-    }
-  }
-}
-```
-The path to the `country_name` is: `/source/geo/country_name`, and the path to `ip.keyword` is `/source/ip.keyword`.
-
----
-
-# NiFi Enrichment
-
-Add a GeoEnrichIPRecord processor to enrich the destination IP of events from Packetbeat.
-
-Set the following settings on the GeoEnrichIPRecord processor:
-- MaxMind Database File: `/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`
-- City Record Path: `/destination/geo/city_name`
-- Latitude Record Path: `/destination/geo/location/lat`
-- Longitude Record Path: `/destination/geo/location/lon`
-- Country Record Path: `/destination/geo/country_name`
-- Country ISO Code Record Path: `/destination/geo/country_iso_code`
-- Country Postal Code Record Path: `/destination/geo/postal_code`
-
----
-
-# NiFi Enrichment (2)
-
-**Mini Exercise:** find the correct `IP Address Record Path` for the destination IP by inspecting queued FlowFiles as shown above. Also set the Record Reader and Record Writer to appropriate values.
-
-**See next slide for the answer.**
-
----
-
-# NiFi Enrichment (3)
-
-**Exercise answer**: Fill in `/destination/ip` as the `IP Address Record Path` in the properties of the GeoEnrichIPRecord processor.
-
----
-
-# NiFi Enrichment (4)
-
-Hover over the GeoEnrichIPRecord processor to show the arrow icon, then drag it and **connect it to the PutElasticsearchRecord processor you configured for Packetbeat** to create a connection for the `found` relationship.
-
-Now, hover over the GeoEnrichIPRecord processor and drag its arrow to the PutElasticsearchRecord processor *again*. This time, create the connection for the `not found` relationship.
-
-Finally, open the settings of the GeoEnrichIPRecord processor and terminate the `original` relationship.
-
----
-
-# NiFi Enrichment (5)
-
-If done correctly, your connection should look like the diagram on the right.
-![bg right fit](images/nifi-enrich.png)
-
-Now, stop both the ConsumeKafkaRecord_2_6 and PutElasticsearchRecord processors for Packetbeat.
-
----
-
-# NiFi Enrichment (6)
-
-Click on the `success` relationship between ConsumeKafkaRecord_2_6 and PutElasticsearchRecord. A blue dot should appear in the arrowhead of the relationship. 
-
-Drag the blue dot and connect it to the GeoEnrichIPRecord processor.
-
-![bg right fit](images/nifi-enrich-insert.png)
-
----
-
-# NiFi Enrichment (7)
-
-Finally, start all the processors. The final diagram should look like the image on the right.
-
-Notice that almost all events are being sent to the `not found` relationship. This is normal as most of the traffic in your Kubernetes cluster consists mainly of connections between containers with private IP addresses.
-
-![bg right fit](images/nifi-enrich-final.png)
-
----
-
-# Error handling
-
-## Dead Letter Queue
-
-Add a new PutFile processor to store failed events to disk in order to create a Dead Letter Queue.
-
-Double click the PutFile processor and set the following property:
-- Directory: `/opt/nifi/nifi-current/state/dlq`
-
-Now you need to configure your existing processors to send error events to the dead letter queue.
-
-Hover over a ConsumeKafkaRecord_2_6 (doesn't matter which one), then drag its arrow to the PutFile processor, and specify the `parse.failure` relationship for the connection.
-
-Repeat for all other ConsumeKafkaRecord_2_6 processors.
-
----
-
-## Dead Letter Queue (2)
-
-Now, hover over a PutElasticsearchRecord (doesn't matter which one), then drag its arrow to the PutFile processor, and specify the `failure` relationship for the connection.
-
-Also, drag the same PutElasticsearchRecord's arrow to the PutFile processor again, and specify the `errors` relationship for the connection.
-
-Repeat for 
-
-This creates a Dead Letter Queue that will store all events that the processor could not handle for some reason or another.
-
----
-
-# Exercise - Prometheus Metrics
-
-In the `beats` folder in `data-pipeline`, you should be able to find a folder called `metricbeat-prometheus.yaml`.
-
-Find the section that looks like this:
-```yaml
-    metricbeat.modules:
-      - module: prometheus
-        period: 5s
-        hosts: ["nssdc-kube-state-metrics.monarch.svc:8080"]
-        metricsets: ["collector"]
-        metrics_path: /metrics
-
-      - module: prometheus
-        period: 5s
-        hosts: ["kpi-calculator-service.monarch.svc:9000"]
-        metricsets: ["collector"]
-        metrics_path: /metrics
-```
-
----
-
-# Exercise - Prometheus Metrics (2)
-
-These are the endpoints for Prometheus collectors. We want to add the metrics from Monarch for slice monitoring metrics.
-
-Go to http://localhost:30095/targets?search=, and find the endpoints. Two of them have already been configured. Add the AMF, SMF, and UPF endpoints on that page in the same format, then re-deploy beats by running the following command in the `~/data_pipeline` folder:
-```
-./deploy-beats.sh
-```
-> Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file
-
----
-
 # Searching Data
 
-Now that everything is deployed, we can now visualize it in OpenSearch. Go to http://localhost:32001. Log in using username `admin` and password `admin` if prompted. 
+Now that everything is deployed, we can now visualize it in OpenSearch. Go to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Log in using username `admin` and password `admin` if prompted. 
 
 Select "Explore on my own". Select the menu button on the top left, scroll down and select "Dashboards Management". 
 
@@ -612,7 +509,7 @@ You can also change the index patern using the field on the left side of the scr
 
 ---
 
-# Exercise - Visualization
+# Creating Visualization
 
 Create a visualization to view data. To do this, select the menu button, and navigate to Visualize.
 
@@ -624,11 +521,23 @@ Feel free to some more visualizations by experimenting with other metrics.
 
 ---
 
-# Exercise - Dashboards
+# Creating Dashboards
 
 Create a dashboard to view multiple visualizations. Select the menu button, and navigate to Dashboards.
 
 Select "Create new dashboard", and add the visualizations you created. Press save on the top right and give it a title and optionally a description.
+
+---
+
+# NiFi Enrichment
+
+If time permits, the NiFi enrichment slides can be found [here](https://hautonjt.github.io/exercise1.pdf).
+
+---
+
+# NiFi Error Handling
+
+If time permits, the NiFi error handling slides can be found [here](https://hautonjt.github.io/exercise2.pdf).
 
 ---
 
