@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
+
 cd ..
 
 sudo sysctl -w vm.max_map_count=786432

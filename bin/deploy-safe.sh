@@ -1,5 +1,7 @@
 #!/bin/bash
 
+cd "$(dirname "$0")"
+
 cd ..
 
 sudo sysctl -w vm.max_map_count=786432
@@ -14,6 +16,8 @@ sudo mkdir -p /var/lib/nifi/nifi-2
 sudo cp geoip/GeoLite2-City.mmdb /var/lib/nifi/nifi-0
 sudo cp geoip/GeoLite2-City.mmdb /var/lib/nifi/nifi-1
 sudo cp geoip/GeoLite2-City.mmdb /var/lib/nifi/nifi-2
+
+sudo chown -R 1000:1000 /var/lib/nifi
 
 kubectl apply -k nifi -n datapipeline
 
