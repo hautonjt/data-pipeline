@@ -77,7 +77,7 @@ Click apply, then enable both the StandardRestrictedSSLContextService and the El
 Double check to ensure that all your services are properly enabled. Every service should have a crossed-out lightning bolt symbol as shown below:
 ![height:300px center](images/nifi-enable.png)
 
-Once checked, exit out of the NiFi Flow Configuration screen. Now that all the services we need are enabled, we can now add the processors. In the top left of the screen, find the Processors icon. Click and drag the icon to create a new processor. Find the "ConsumeKafkaRecord_2_6" processor and add it.
+Once checked, exit out of the NiFi Flow Configuration screen. Now that all the services we need are enabled, we can add the processors. In the top left of the screen, find the Processors icon. Click and drag the icon to create a new processor. Find the "ConsumeKafkaRecord_2_6" processor and add it.
 
 ---
 
@@ -113,13 +113,13 @@ Click apply.
 
 NiFi processors are connected with each other using relationships. All relationships need to be configured in order for a NiFi processor to be runnable. To view a processor's relationships, double click the processor to open its settings, then navigate to the "Relationships" tab to view its relationships. 
 
-For example, the "ConsumeKafkaRecord_2_6" processor has two relationships: `success`, and `parse.failure`. Each relationship has a "terminate" and a "retry" box.
+For example, the "ConsumeKafkaRecord_2_6" processor has two relationships: `success`, and `parse.failure`.
 
 ---
 
 # Configuring NiFi Relationships (2)
 
-Below each relationship is a brief explanation. For example, in our case, the event will be sent to the `parse.failure` relationship if it is not a valid JSON file. Every relationship has both a "terminate" and "retry" option.  
+Below each relationship is a brief explanation. For example, in our case, if the event cannot be parsed by `JsonTreeReader`, the event will be sent to the `parse.failure` relationship. Every relationship has both a "terminate" and "retry" option.  
 
 ![bg right fit](images/nifi-relationships.png)
 
@@ -129,7 +129,7 @@ Below each relationship is a brief explanation. For example, in our case, the ev
 
 Enabling the "retry" option will cause the event to be re-processed by the processor a set number of times in a configurable manner. The "terminate" option causes the event to be dropped. Both "retry" and "terminate" options can be enabled, which causes the event to be dropped after all retries have been exhausted.
 
-Any relationship that does not have the "terminate" option enabled must be connected to another processor, even if "retry" is enabled on that relationship. We will be connecting our ConsumeKafkaRecord_2_6 processor to our PutElasticsearchRecord processor.
+Any relationship that does not have the "terminate" option enabled must be connected to another processor, even if "retry" is enabled on that relationship. In our case, we will be connecting our ConsumeKafkaRecord_2_6 processor's `success` relationship to our PutElasticsearchRecord processor.
 
 ---
 
@@ -188,7 +188,7 @@ Ensure that both the Topic Name in the ConsumeKafkaRecord_2_6 processor and the 
 
 NiFi lets you inspect queued FlowFiles pretty easily. To do this, **you must first stop the PutElasticsearchRecord processor**. Then, right click the queue (i.e., the box labeled "success"). Then select "List queue". This shows a list of all FlowFiles in the queue. 
 
-You can select the "eye" icon to view its content. **(If you get an error, ensure you stopped the PutElasticsearchRecord processor that was downstream from the queue.)**
+You can select the "eye" icon to view its content. **(If you get an error, ensure you stopped the PutElasticsearchRecord processor that was downstream from the queue)**
 
 In the "View as" selection box, select "formatted" to see the formatted JSON.
 
@@ -204,7 +204,7 @@ If no events are arriving at your ConsumeKafkaRecord_2_6 processors after a whil
 
 # Configure OpenSearch
 
-Now that everything is deployed, we can now visualize it in OpenSearch. Go to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Log in using username `admin` and password `admin` if prompted. 
+Now that everything is deployed, we can visualize it in OpenSearch. Go to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Log in using username `admin` and password `admin`, if prompted. 
 
 Select "Explore on my own". Close the dialog box about the new theme. Then, select the menu button on the top left, scroll down and select "Dashboards Management". 
 
@@ -244,11 +244,9 @@ If some patterns were added but don't show up, try refreshing the page.
 
 Open the menu, and select "Discover". Discover should look like this:
 
-![height:200px center](images/dashboard.png)
+![height:300px center](images/dashboards.svg)
 
-If you do not see any data, you can change the search time frame on the top right input to the left of the "Refresh" button. A relative time of "Past 1 hour" should yield some results.
-
-You can also change the index patern using the field on the left side of the screen, to the left of the search box.
+If you do not see any data, you can change the search time frame on the top right input to the left of the "Refresh" button. A relative time of "Past 1 hour" should yield some results. You can also change the index pattern using the field on the left side of the screen, to the left of the search box.
 
 > Note: it is normal for the data in the "filebeat" index pattern to be older than the others.
 
@@ -260,13 +258,23 @@ Create a visualization to view data. To do this, select the menu button, and nav
 
 Create a new "Line" visualization, and choose the `prometheus` index pattern.
 
-Click on the Y-axis to expand the aggregation. Select the `average` aggregation. For the field, select `prometheus.metric.slice_throughput` metric. Add an X-axis by selecting "Add" below the "Bucket" panel in the bottom right side of the screen. Add a date histogram to the X-axis using the `@timestamp` field. Press save on the top right and give it a title and optionally a description.
+Click on the Y-axis to expand the aggregation. Select the `average` aggregation. For the field, select `prometheus.metric.slice_throughput` metric. 
+
+![bg right fit](images/visualization-settings-step1.svg)
 
 ---
 
 # Creating Visualizations (2)
 
-If done correctly, the visualization settings should look like the image on the right. Click the "Update" button on the bottom right, then press the "Save" button on the top right. Give the visualization a name to save it.
+Add an X-axis by selecting "Add" below the "Bucket" panel in the bottom right side of the screen. Add a date histogram to the X-axis using the `@timestamp` field. Press the Update button in the bottom right to apply changes. Save the visualization by pressing Save on the top right. Give the visualization a title and optionally a description.
+
+![bg right fit](images/visualization-settings-step2.svg)
+
+---
+
+# Checking Visualization Configuration
+
+If done correctly, your visualization settings should match the image on the right.
 
 ![bg right fit](images/visualization-settings.png)
 
@@ -275,7 +283,7 @@ If done correctly, the visualization settings should look like the image on the 
 
 # Creating Dashboards
 
-Create a dashboard to view a collection of visualizations Select the menu button, and navigate to Dashboards under `OpenSearch Dashboards`. 
+Create a dashboard to view a collection of visualizations. Select the menu button, and navigate to Dashboards under `OpenSearch Dashboards`. 
 > Note: Be careful not to select the Observability dashboards. You should see a screen like the image below.
 
 ![height:200px center](images/dashboards-image.png)

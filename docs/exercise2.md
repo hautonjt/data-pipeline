@@ -30,7 +30,7 @@ Add a new PutFile processor to store failed events to disk in order to create a 
 Double click the PutFile processor and set the following property:
 - <span style="float: left; padding-right: 10px">Directory:</span> <span style="float: left">`/opt/nifi/nifi-current/state/dlq`</span>
 
-Now you need to configure your existing processors to send error events to the dead letter queue.
+Now, you need to configure your existing processors to send error events to the dead letter queue.
 
 Hover over a ConsumeKafkaRecord_2_6 (doesn't matter which one), then drag its arrow to the PutFile processor, and specify the `parse.failure` relationship for the connection.
 
@@ -72,4 +72,4 @@ You have successfully completed the following:
 - Configured retry for a processor
 
 **What's Next?**
-You can go back to the main session [here](https://hautonjt.github.io/pipeline2.pdf#page=28).
+You can go back to the main session [here](https://hautonjt.github.io/pipeline2.pdf#page=29).

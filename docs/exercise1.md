@@ -36,7 +36,7 @@ NiFi operates on JSON files using "Record Path" syntax, and is analogous to a fi
   }
 }
 ```
-The path to the `country_name` is: `/source/geo/country_name`, and the path to `ip.keyword` is `/source/ip.keyword`.
+the path to the `country_name` is: `/source/geo/country_name`, and the path to `ip.keyword` is `/source/ip.keyword`.
 
 ---
 
@@ -127,4 +127,4 @@ You have successfully completed the following:
 - Applied Record Paths to specify fields in JSON FlowFiles
 
 **What's Next?**
-You can go back to the main session [here](https://hautonjt.github.io/pipeline2.pdf#page=27).
+You can go back to the main session [here](https://hautonjt.github.io/pipeline2.pdf#page=28).

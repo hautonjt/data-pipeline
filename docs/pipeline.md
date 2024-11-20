@@ -85,7 +85,7 @@ Due to its common ancestry, many open-source tools that work with ElasticSearch 
 
 Data stored in OpenSearch using indexes. Each index consists of a number of primary shards, which allow data to be spread across multiple machines. These shards can be configured with replicas to provided high availability.
 
-![height:300px center](images/opensearch.png)
+![height:300px center](images/opensearch.svg)
 
 ---
 
@@ -161,11 +161,11 @@ Replication factor controls the number of copies of each partition. Having a rep
 
 
 ### Min in-sync replicas
-Each event must be present in at least *min in-sync replicas* before being successfully written. This minimizes the probability of data loss, but also means that if there are fewer than that many replicas of a partition are present, a partition could no longer be written to. 
+Each event must be present in at least *min in-sync replicas* before being successfully written. This minimizes the probability of data loss, but also means that if fewer than that many replicas of a partition are present, a partition could no longer be written to. 
 
 ### Data persistence
 
-Unlike message queues like RabbitMQ, data stored in Kafka topics not deleted when events are processed. Deletion is instead controlled by a data retention setting. This means that if an issue occurs in the transformer causing events to be corrupted, events can be re-ingested from the same Kafka topic before retention expires. Kafka consumers need to keep track of what events it has read from a topic.
+Unlike message queues like RabbitMQ, data stored in Kafka topics are not deleted when events are processed. Deletion is instead controlled by a data retention setting. This means that if an issue occurs in the transformer causing events to be corrupted, events can be re-ingested from the same Kafka topic before retention expires. Kafka consumers need to keep track of what events it has read from a topic.
 
 ---
 
@@ -199,7 +199,7 @@ Repeat the prior steps with the topics "metricbeat", "packetbeat", and "promethe
 
 # Configuring Beats Agents
 
-Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Filebeat, Metricbeat, and Packetbeat all supports Kubernetes natively and can gather data from Kubernetes automatically, but we also want to gather metrics from our custom Prometheus exporters in Monarch. 
+Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Filebeat, Metricbeat, and Packetbeat all support Kubernetes natively and can gather data from Kubernetes automatically, but we also want to gather metrics from our custom Prometheus exporters in Monarch. 
 
 To do this, we will need to explicitly configure Metricbeat to find the Prometheus endpoints.
 
@@ -209,7 +209,11 @@ To do this, we will need to explicitly configure Metricbeat to find the Promethe
 # Configuring Beats Agents (2)
 
 
-In the `beats` folder in `data-pipeline`, you should be able to find a file called `metricbeat-prometheus.yaml`.
+Open the `data-pipeline` folder in VS Code. You can do this by typing:
+```
+code .
+```
+In the `beats` folder, there is a file called `metricbeat-prometheus.yaml`.
 
 Find the section that looks like this:
 ```yaml
@@ -233,9 +237,11 @@ Find the section that looks like this:
 
 **Mini Exercise:** This is the section for configuring endpoints for Prometheus collectors. We want to add the metrics endpoint from Monarch to gather slice monitoring metrics.
 
-Go to <a href="http://localhost:30095/targets?search=" target="_blank">http://localhost:30095/targets?search=</a>, and find the endpoints. Two of them have already been configured. 
+Open the [Prometheus GUI](http://localhost:30095/targets?search=) deployed by Monarch, and view the list of endpoint URLs. 
 
-Add the AMF, SMF, and UPF endpoints on that page by replacing the `<insert AMF/SMF/UPF collector URL>` with the endpoints from Prometheus. Ensure that the port is included in the URL, but the `/metrics` subpath is removed.
+Add the AMF, SMF, and UPF endpoints on that page to the Metricbeat configmap by replacing the `<insert AMF/SMF/UPF collector URL>` placeholder text. Ensure that the **port** is included in the URL, but the `/metrics` subpath is removed.
+
+Note that two endpoints have already been configured for Metricbeat as examples so you can see what the format should look like.
 
 > Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file if you are stuck.
 
@@ -250,7 +256,7 @@ Now that all the Prometheus endpoints are configured, we can deploy Filebeat, Me
 
 Filebeat, Metricbeat, and Packetbeat all produce events from different types of information. 
 
-**Filebeat** reads informations mainly from log files and JSON HTTP endpoints. Filebeat has native integration with Kubernetes, enabling it to read the logs of all running containers, even ones deployed after Filebeat. For advanced use cases, Filebeat can also use Kubernetes annotations to separately parse the logs of certain containers if necessary.
+**Filebeat** reads informations mainly from log files and JSON HTTP endpoints. Filebeat has native integration with Kubernetes, enabling it to read the logs of all running containers, even ones deployed after Filebeat. For advanced use cases, Filebeat can also use Kubernetes annotations to separately parse the logs of certain containers, if necessary.
 
 ---
 
@@ -258,7 +264,7 @@ Filebeat, Metricbeat, and Packetbeat all produce events from different types of 
 
 **Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with Monarch. It also integrates with kube-state-metrics, which Monarch installs.
 
-**Packetbeat** captures connection information from all network interfaces present in the current running machine. This includes ingress traffic, egress traffic, and network traffic traffic between pods.
+**Packetbeat** captures connection information from all network interfaces present in the current running machine. This includes ingress traffic, egress traffic, and network traffic between pods.
 
 Beats are designed to be deployed together, and have a unified schema. Thus, one advantage of using Beats is not having to worry about normalizing the schema in the transformer.
 
@@ -272,7 +278,7 @@ If you check the Kafka UI at <a href="http://localhost:32000" target="_blank">ht
 
 # NiFi
 
-Finally, we are deploying NiFi. Before deploying, To do this, run:
+Finally, let's deploy NiFi. To do this, run:
 ```
 ./deploy-nifi.sh
 ```
@@ -293,7 +299,7 @@ NiFi is a versatile distributed data processor. NiFi allows you to create data p
 # How does NiFi work?
 NiFi operates using the concept of FlowFiles, which is just a container that can hold any data along with some attributes, which are essentially metadata. This means that FlowFiles inherently do not have any structure at all.
 
-Processors act on FlowFiles and transforms them in some way. There are a vast array of processors that cater to almost any use case, and for use cases that built-in processors are incapable of handling, NiFi also supports calling external scripts as well. You can integrate ML with NiFi directly using processors instead of interfacing with Kafka.
+Processors act on FlowFiles and transforms them in some way. There are a vast array of processors that cater to almost any use case, and for use cases that built-in processors are incapable of handling, NiFi also supports calling external scripts. You can integrate ML with NiFi directly using processors instead of interfacing with Kafka.
 
 ---
 
