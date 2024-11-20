@@ -240,7 +240,7 @@ If some patterns were added but don't show up, try refreshing the page.
 
 ---
 
-# Searching Data (2)
+# Searching Data
 
 Open the menu, and select "Discover". Discover should look like this:
 
@@ -254,7 +254,7 @@ You can also change the index patern using the field on the left side of the scr
 
 ---
 
-# Creating Visualization
+# Creating Visualizations
 
 Create a visualization to view data. To do this, select the menu button, and navigate to Visualize.
 
@@ -264,7 +264,7 @@ Click on the Y-axis to expand the aggregation. Select the `average` aggregation.
 
 ---
 
-# Creating Visualization (2)
+# Creating Visualizations (2)
 
 If done correctly, the visualization settings should look like the image on the right. Click the "Update" button on the bottom right, then press the "Save" button on the top right. Give the visualization a name to save it.
 
