@@ -202,13 +202,41 @@ If no events are arriving at your ConsumeKafkaRecord_2_6 processors after a whil
 
 ---
 
-# Searching Data
+# Configure OpenSearch
 
 Now that everything is deployed, we can now visualize it in OpenSearch. Go to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Log in using username `admin` and password `admin` if prompted. 
 
-Select "Explore on my own". Select the menu button on the top left, scroll down and select "Dashboards Management". 
+Select "Explore on my own". Close the dialog box about the new theme. Then, select the menu button on the top left, scroll down and select "Dashboards Management". 
 
-Create index patterns with the names "filebeat", "packetbeat", "metricbeat", "prometheus", and "*beat,prometheus". Set the "Time field" to the value `@timestamp` for all of them.
+
+![bg right fit](images/dashboards-management.svg)
+
+---
+
+# Configure OpenSearch (2)
+
+Create index patterns with the names `filebeat`, `packetbeat`, `metricbeat`, `prometheus`, and `*beat,prometheus`. Set the "Time field" to the value `@timestamp` for all of them.
+> Hint: Click on "Index patterns" on the left to go back to the screen with the "Create index pattern" button.
+
+![height:400px center](images/dashboards-pattern.svg)
+
+
+---
+
+# Configure OpenSearch (3)
+
+### What are index patterns?
+Index patterns allow you to search one or more indices in OpenSearch at the same time. We created index patterns for each type of data so we could search them individually, but also defined a `*beat,prometheus` pattern that matches all four of our indices.
+
+---
+
+# Check OpenSearch Configuration
+
+Once you have created all your patterns, you should see the following:
+
+![height:400px center](images/dashboards-pattern-list.png)
+
+If some patterns were added but don't show up, try refreshing the page.
 
 ---
 
@@ -230,19 +258,30 @@ You can also change the index patern using the field on the left side of the scr
 
 Create a visualization to view data. To do this, select the menu button, and navigate to Visualize.
 
-Create a new "Line" visualization, and choose the "prometheus-metricbeat" index pattern.
+Create a new "Line" visualization, and choose the `prometheus` index pattern.
 
-Keep the metric as count, then add an X-axis by selecting "Add" below the "Bucket" panel in the bottom right side of the screen. Add a date histogram to the X-axis using the `@timestamp` field. Press save on the top right and give it a title and optionally a description.
+Click on the Y-axis to expand the aggregation. Select the `average` aggregation. For the field, select `prometheus.metric.slice_throughput` metric. Add an X-axis by selecting "Add" below the "Bucket" panel in the bottom right side of the screen. Add a date histogram to the X-axis using the `@timestamp` field. Press save on the top right and give it a title and optionally a description.
 
-Feel free to some more visualizations by experimenting with other metrics.
+---
+
+# Creating Visualization (2)
+
+If done correctly, the visualization settings should look like the image on the right. Click the "Update" button on the bottom right, then press the "Save" button on the top right. Give the visualization a name to save it.
+
+![bg right fit](images/visualization-settings.png)
+
 
 ---
 
 # Creating Dashboards
 
-Create a dashboard to view multiple visualizations. Select the menu button, and navigate to Dashboards.
+Create a dashboard to view a collection of visualizations Select the menu button, and navigate to Dashboards under `OpenSearch Dashboards`. 
+> Note: Be careful not to select the Observability dashboards. You should see a screen like the image below.
 
-Select "Create new dashboard", and add the visualizations you created. Press save on the top right and give it a title and optionally a description.
+![height:200px center](images/dashboards-image.png)
+
+
+Select "Create new dashboard", then select "Add an existing", and add the visualization you just created. Press save on the top right and give it a title and optionally a description.
 
 ---
 

@@ -45,13 +45,13 @@ The path to the `country_name` is: `/source/geo/country_name`, and the path to `
 Add a GeoEnrichIPRecord processor to enrich the destination IP of events from Packetbeat.
 
 Set the following settings on the GeoEnrichIPRecord processor:
-- MaxMind Database File: `/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`
-- City Record Path: `/destination/geo/city_name`
-- Latitude Record Path: `/destination/geo/location/lat`
-- Longitude Record Path: `/destination/geo/location/lon`
-- Country Record Path: `/destination/geo/country_name`
-- Country ISO Code Record Path: `/destination/geo/country_iso_code`
-- Country Postal Code Record Path: `/destination/geo/postal_code`
+- <span style="float: left; padding-right: 10px">MaxMind Database File: </span> <span style="float: left">`/opt/nifi/nifi-current/state/GeoLite2-City.mmdb`</span>
+- <span style="float: left; padding-right: 10px">City Record Path: </span><span style="float: left">`/destination/geo/city_name`</span>
+- <span style="float: left; padding-right: 10px">Latitude Record Path: </span><span style="float: left">`/destination/geo/location/lat`</span>
+- <span style="float: left; padding-right: 10px">Longitude Record Path: </span><span style="float: left">`/destination/geo/location/lon`</span>
+- <span style="float: left; padding-right: 10px">Country Record Path: </span><span style="float: left">`/destination/geo/country_name`</span>
+- <span style="float: left; padding-right: 10px">Country ISO Code Record Path: </span><span style="float: left">`/destination/geo/country_iso_code`</span>
+- <span style="float: left; padding-right: 10px">Country Postal Code Record Path: </span><span style="float: left">`/destination/geo/postal_code`</span>
 
 ---
 
@@ -65,7 +65,11 @@ Set the following settings on the GeoEnrichIPRecord processor:
 
 # NiFi Enrichment (3)
 
-**Exercise answer**: Fill in `/destination/ip` as the `IP Address Record Path` in the properties of the GeoEnrichIPRecord processor.
+**Exercise answer**: `IP Address Record Path` should be set to
+```
+/destination/ip
+```
+in the properties of the GeoEnrichIPRecord processor. Set Record Reader to `JsonTreeReader` and Record Writer to `JsonRecordSetWriter`.
 
 ---
 
@@ -105,6 +109,12 @@ Finally, start all the processors. The final diagram should look like the image 
 Notice that almost all events are being sent to the `not found` relationship. This is normal as most of the traffic in your Kubernetes cluster consists mainly of connections between containers with private IP addresses.
 
 ![bg right fit](images/nifi-enrich-final.png)
+
+---
+
+# NiFi Enrichment (8)
+
+Notice how separating the different Beats outputs into different topics in Kafka allowed for specialized processing for only Packetbeat. If all the events were sent to a single topic, it would be much more difficult to integrate enrichment for only one type of data
 
 ---
 

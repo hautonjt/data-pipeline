@@ -28,7 +28,7 @@ img[alt~="center"] {
 Add a new PutFile processor to store failed events to disk in order to create a Dead Letter Queue.
 
 Double click the PutFile processor and set the following property:
-- Directory: `/opt/nifi/nifi-current/state/dlq`
+- <span style="float: left; padding-right: 10px">Directory:</span> <span style="float: left">`/opt/nifi/nifi-current/state/dlq`</span>
 
 Now you need to configure your existing processors to send error events to the dead letter queue.
 
@@ -44,9 +44,9 @@ Now, hover over a PutElasticsearchRecord (doesn't matter which one), then drag i
 
 Also, drag the same PutElasticsearchRecord's arrow to the PutFile processor again, and specify the `errors` relationship for the connection.
 
-Repeat for all other processors.
-
 This creates a Dead Letter Queue that will store all events that the processor could not handle for some reason or another.
+
+Repeat for all other PutElasticsearchRecord processors. For testing, having all the events go into a single Dead Letter Queue may be sufficient, but for production multiple queues will make identifying issues easier.
 
 ---
 
@@ -57,7 +57,9 @@ This creates a Dead Letter Queue that will store all events that the processor c
 Double click the PutElasticsearchRecord, navigate to the relationships tab, and select the "retry" option for the `retry` relationship. Leave the retry algorithm as-is, and press apply.
 
 This will automatically configure 10 retries with exponential backoff.
-![height:300px center](images/nifi-retry.png)
+![height:250px center](images/nifi-retry.png)
+
+Repeat for all other PutElasticsearchRecord processors.
 
 ---
 

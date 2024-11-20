@@ -37,6 +37,7 @@ However, to demonstrate the pipeline working, we need an environment to gather d
 # Re-deploying the 5G Core
 
 To begin, we will use `git clone` to fetch the source code of our data pipeline and re-create the entire Kubernetes setup we had deployed yesterday. 
+> Tip: Triple-click to select a whole line in a code block. To paste in a terminal, use the shortcut Ctrl-Shift-V instead of Ctrl-V.
 ```
 cd ~
 git clone https://github.com/hautonjt/data-pipeline
@@ -72,36 +73,9 @@ By deploying the pipeline in this order, the extractors will send a bunch of eve
 
 ---
 
-# Deploying the database
-First, let's deploy the OpenSearch cluster. Run the following:
-```
-cd ~/data-pipeline
-./deploy-opensearch.sh 
-```
-> Note: you will need to type your password (`user`) for this script as it uses `sudo` internally
-
-This script does the following:
-  - Create a highly available OpenSearch cluster of 3 pods
-  - Provision an instance of OpenSearch dashboards
-  - Configure certificate-based authentication
-
----
-
-# Switching namespaces
-
-Both OpenSearch and OpenSearch dashboards should be deployed in a new namespace named `datapipeline`. This namespace is where all our new pipeline containers will be deployed to. 
-
-Since we will be interacting with the `datapipeline` namespace the most in this lab, we can switch the namespace that `kubectl` is connected to by running:
-```
-kubectl config set-context --current --namespace=datapipeline
-```
-Now, if you run a kubectl command, such as,  `kubectl get pods`, it will run that command in the context of the `datapipeline` namespace by default.
-
----
-
 # What is OpenSearch?
 
-OpenSearch is a **fork** of ElasticSearch developed by Amazon. It was forked because the company developing ElasticSearch, Elastic NV, changed its license to restrict commercial usage.
+As previously mentioned, we'll be using OpenSearch for the database of our pipeline. OpenSearch is a **fork** of ElasticSearch developed by Amazon. It was forked because the company developing ElasticSearch, Elastic NV, changed its license to restrict commercial usage.
 
 Due to its common ancestry, many open-source tools that work with ElasticSearch also work with OpenSearch, including NiFi.
 
@@ -115,9 +89,40 @@ Data stored in OpenSearch using indexes. Each index consists of a number of prim
 
 ---
 
-# Access OpenSearch dashboards
+# Deploying the database
+First, let's deploy the OpenSearch cluster. Run the following:
+```
+cd ~/data-pipeline
+./deploy-opensearch.sh 
+```
+> Note: you will need to type your password (`user`) for this script as it uses `sudo` internally
 
-To access the dashboards, navigate to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully. We will return to OpenSearch dashboards later on.
+This script does the following:
+  - Create a highly available OpenSearch cluster of 3 pods
+  - Provision an instance of OpenSearch Dashboards
+  - Configure certificate-based authentication
+
+---
+
+# Switching namespaces
+
+All of the containers we will be deploying in this session will be assigned to a new namespace named `datapipeline`.
+
+Since we will be interacting with the `datapipeline` namespace the most in this lab, we can switch the namespace that `kubectl` is connected to by running:
+```
+kubectl config set-context --current --namespace=datapipeline
+```
+> Tip: if OpenSearch is still deploying, you can also run this in a new terminal window
+
+Now, if you run a kubectl command, such as,  `kubectl get pods`, it will run that command in the context of the `datapipeline` namespace by default.
+
+---
+
+# Access OpenSearch Dashboards
+
+> Tip: Click links with your scroll wheel (middle click) to open links in a new tab. Alternatively, right click to choose if a link should open in a new tab or window.
+
+To access the dashboards, navigate to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully and you may close it. We will return to OpenSearch Dashboards later on.
 
 ![height:300px center](images/dashboards-intro.png)
 
@@ -194,9 +199,9 @@ Repeat the prior steps with the topics "metricbeat", "packetbeat", and "promethe
 
 # Configuring Beats Agents
 
-Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Beats supports Kubernetes natively, but we also want to gather metrics from the Prometheus exporters in Monarch. 
+Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Filebeat, Metricbeat, and Packetbeat all supports Kubernetes natively and can gather data from Kubernetes automatically, but we also want to gather metrics from our custom Prometheus exporters in Monarch. 
 
-To do this, we will need a configure Metricbeat to find the Prometheus endpoints.
+To do this, we will need to explicitly configure Metricbeat to find the Prometheus endpoints.
 
 
 ---
@@ -224,21 +229,21 @@ Find the section that looks like this:
 
 ---
 
-# Configuring Beats agents
+# Configuring Beats Agents (3)
 
-These are the endpoints for Prometheus collectors. We want to add the metrics from Monarch for slice monitoring metrics.
+**Mini Exercise:** This is the section for configuring endpoints for Prometheus collectors. We want to add the metrics endpoint from Monarch to gather slice monitoring metrics.
 
 Go to <a href="http://localhost:30095/targets?search=" target="_blank">http://localhost:30095/targets?search=</a>, and find the endpoints. Two of them have already been configured. 
 
 Add the AMF, SMF, and UPF endpoints on that page by replacing the `<insert AMF/SMF/UPF collector URL>` with the endpoints from Prometheus. Ensure that the port is included in the URL, but the `/metrics` subpath is removed.
 
-> Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file
+> Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file if you are stuck.
 
 ---
 
 # Deploy Beats
 
-Now we deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:
+Now that all the Prometheus endpoints are configured, we can deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:
 ```
 ./deploy-beats.sh
 ```

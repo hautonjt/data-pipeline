@@ -18,7 +18,7 @@
 <p>Add a new PutFile processor to store failed events to disk in order to create a Dead Letter Queue.</p>
 <p>Double click the PutFile processor and set the following property:</p>
 <ul>
-<li>Directory: <code>/opt/nifi/nifi-current/state/dlq</code></li>
+<li><span style="float: left; padding-right: 10px">Directory:</span> <span style="float: left"><code>/opt/nifi/nifi-current/state/dlq</code></span></li>
 </ul>
 <p>Now you need to configure your existing processors to send error events to the dead letter queue.</p>
 <p>Hover over a ConsumeKafkaRecord_2_6 (doesn't matter which one), then drag its arrow to the PutFile processor, and specify the <code>parse.failure</code> relationship for the connection.</p>
@@ -28,15 +28,16 @@
 <h2 id="dead-letter-queue-2">Dead Letter Queue (2)</h2>
 <p>Now, hover over a PutElasticsearchRecord (doesn't matter which one), then drag its arrow to the PutFile processor, and specify the <code>failure</code> relationship for the connection.</p>
 <p>Also, drag the same PutElasticsearchRecord's arrow to the PutFile processor again, and specify the <code>errors</code> relationship for the connection.</p>
-<p>Repeat for all other processors.</p>
 <p>This creates a Dead Letter Queue that will store all events that the processor could not handle for some reason or another.</p>
+<p>Repeat for all other PutElasticsearchRecord processors. For testing, having all the events go into a single Dead Letter Queue may be sufficient, but for production multiple queues will make identifying issues easier.</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="4" data-paginate="true" lang="en-CA" data-marpit-pagination="4" style="--paginate:true;" data-marpit-pagination-total="5">
 <h1 id="error-handling-2">Error Handling (2)</h1>
 <h2 id="retry-configuration">Retry Configuration</h2>
 <p>Double click the PutElasticsearchRecord, navigate to the relationships tab, and select the &quot;retry&quot; option for the <code>retry</code> relationship. Leave the retry algorithm as-is, and press apply.</p>
 <p>This will automatically configure 10 retries with exponential backoff.<br />
-<img src="images/nifi-retry.png" alt="center" style="height:300px;" /></p>
+<img src="images/nifi-retry.png" alt="center" style="height:250px;" /></p>
+<p>Repeat for all other PutElasticsearchRecord processors.</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="5" data-paginate="true" lang="en-CA" data-marpit-pagination="5" style="--paginate:true;" data-marpit-pagination-total="5">
 <h1 id="next-steps">Next Steps</h1>

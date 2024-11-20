@@ -26,6 +26,9 @@
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="3" data-paginate="true" lang="en-CA" data-marpit-pagination="3" style="--paginate:true;" data-marpit-pagination-total="26">
 <h1 id="re-deploying-the-5g-core">Re-deploying the 5G Core</h1>
 <p>To begin, we will use <code>git clone</code> to fetch the source code of our data pipeline and re-create the entire Kubernetes setup we had deployed yesterday.</p>
+<blockquote>
+<p>Tip: Triple-click to select a whole line in a code block. To paste in a terminal, use the shortcut Ctrl-Shift-V instead of Ctrl-V.</p>
+</blockquote>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code>cd ~
 git clone https://github.com/hautonjt/data-pipeline
 cd data-pipeline
@@ -56,6 +59,16 @@ cd data-pipeline
 <p>By deploying the pipeline in this order, the extractors will send a bunch of events into the buffer first, which will allow you to inspect the structure of each event. This makes it much easier to check the events' schema as well as verify whether the information needed by the transformer is available. We will deploy our pipeline using this order.</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="6" data-paginate="true" lang="en-CA" data-marpit-pagination="6" style="--paginate:true;" data-marpit-pagination-total="26">
+<h1 id="what-is-opensearch">What is OpenSearch?</h1>
+<p>As previously mentioned, we'll be using OpenSearch for the database of our pipeline. OpenSearch is a <strong>fork</strong> of ElasticSearch developed by Amazon. It was forked because the company developing ElasticSearch, Elastic NV, changed its license to restrict commercial usage.</p>
+<p>Due to its common ancestry, many open-source tools that work with ElasticSearch also work with OpenSearch, including NiFi.</p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" data-paginate="true" lang="en-CA" data-marpit-pagination="7" style="--paginate:true;" data-marpit-pagination-total="26">
+<h1 id="how-does-opensearch-work">How does OpenSearch Work?</h1>
+<p>Data stored in OpenSearch using indexes. Each index consists of a number of primary shards, which allow data to be spread across multiple machines. These shards can be configured with replicas to provided high availability.</p>
+<p><img src="images/opensearch.png" alt="center" style="height:300px;" /></p>
+</section>
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" data-paginate="true" lang="en-CA" data-marpit-pagination="8" style="--paginate:true;" data-marpit-pagination-total="26">
 <h1 id="deploying-the-database">Deploying the database</h1>
 <p>First, let's deploy the OpenSearch cluster. Run the following:</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code>cd ~/data-pipeline
@@ -67,31 +80,27 @@ cd data-pipeline
 <p>This script does the following:</p>
 <ul>
 <li>Create a highly available OpenSearch cluster of 3 pods</li>
-<li>Provision an instance of OpenSearch dashboards</li>
+<li>Provision an instance of OpenSearch Dashboards</li>
 <li>Configure certificate-based authentication</li>
 </ul>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="7" data-paginate="true" lang="en-CA" data-marpit-pagination="7" style="--paginate:true;" data-marpit-pagination-total="26">
+</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" data-paginate="true" lang="en-CA" data-marpit-pagination="9" style="--paginate:true;" data-marpit-pagination-total="26">
 <h1 id="switching-namespaces">Switching namespaces</h1>
-<p>Both OpenSearch and OpenSearch dashboards should be deployed in a new namespace named <code>datapipeline</code>. This namespace is where all our new pipeline containers will be deployed to.</p>
+<p>All of the containers we will be deploying in this session will be assigned to a new namespace named <code>datapipeline</code>.</p>
 <p>Since we will be interacting with the <code>datapipeline</code> namespace the most in this lab, we can switch the namespace that <code>kubectl</code> is connected to by running:</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code>kubectl config set-context --current --namespace=datapipeline
 </code></pre>
+<blockquote>
+<p>Tip: if OpenSearch is still deploying, you can also run this in a new terminal window</p>
+</blockquote>
 <p>Now, if you run a kubectl command, such as,  <code>kubectl get pods</code>, it will run that command in the context of the <code>datapipeline</code> namespace by default.</p>
 </section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="8" data-paginate="true" lang="en-CA" data-marpit-pagination="8" style="--paginate:true;" data-marpit-pagination-total="26">
-<h1 id="what-is-opensearch">What is OpenSearch?</h1>
-<p>OpenSearch is a <strong>fork</strong> of ElasticSearch developed by Amazon. It was forked because the company developing ElasticSearch, Elastic NV, changed its license to restrict commercial usage.</p>
-<p>Due to its common ancestry, many open-source tools that work with ElasticSearch also work with OpenSearch, including NiFi.</p>
-</section>
-</foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="9" data-paginate="true" lang="en-CA" data-marpit-pagination="9" style="--paginate:true;" data-marpit-pagination-total="26">
-<h1 id="how-does-opensearch-work">How does OpenSearch Work?</h1>
-<p>Data stored in OpenSearch using indexes. Each index consists of a number of primary shards, which allow data to be spread across multiple machines. These shards can be configured with replicas to provided high availability.</p>
-<p><img src="images/opensearch.png" alt="center" style="height:300px;" /></p>
-</section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="10" data-paginate="true" lang="en-CA" data-marpit-pagination="10" style="--paginate:true;" data-marpit-pagination-total="26">
-<h1 id="access-opensearch-dashboards">Access OpenSearch dashboards</h1>
-<p>To access the dashboards, navigate to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Both the username and password to log in are set to the value <code>admin</code>. If you reach the screen below, then OpenSearch has been deployed successfully. We will return to OpenSearch dashboards later on.</p>
+<h1 id="access-opensearch-dashboards">Access OpenSearch Dashboards</h1>
+<blockquote>
+<p>Tip: Click links with your scroll wheel (middle click) to open links in a new tab. Alternatively, right click to choose if a link should open in a new tab or window.</p>
+</blockquote>
+<p>To access the dashboards, navigate to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Both the username and password to log in are set to the value <code>admin</code>. If you reach the screen below, then OpenSearch has been deployed successfully and you may close it. We will return to OpenSearch Dashboards later on.</p>
 <p><img src="images/dashboards-intro.png" alt="center" style="height:300px;" /></p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="11" data-paginate="true" lang="en-CA" data-marpit-pagination="11" style="--paginate:true;" data-marpit-pagination-total="26">
@@ -145,8 +154,8 @@ On the left sidebar, click <em>Topics</em>, then on the top right, select &quot;
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="17" data-paginate="true" lang="en-CA" data-marpit-pagination="17" style="--paginate:true;" data-marpit-pagination-total="26">
 <h1 id="configuring-beats-agents">Configuring Beats Agents</h1>
-<p>Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Beats supports Kubernetes natively, but we also want to gather metrics from the Prometheus exporters in Monarch.</p>
-<p>To do this, we will need a configure Metricbeat to find the Prometheus endpoints.</p>
+<p>Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Filebeat, Metricbeat, and Packetbeat all supports Kubernetes natively and can gather data from Kubernetes automatically, but we also want to gather metrics from our custom Prometheus exporters in Monarch.</p>
+<p>To do this, we will need to explicitly configure Metricbeat to find the Prometheus endpoints.</p>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="18" data-paginate="true" lang="en-CA" data-marpit-pagination="18" style="--paginate:true;" data-marpit-pagination-total="26">
 <h1 id="configuring-beats-agents-2">Configuring Beats Agents (2)</h1>
@@ -167,17 +176,17 @@ On the left sidebar, click <em>Topics</em>, then on the top right, select &quot;
 </code></pre>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="19" data-paginate="true" lang="en-CA" data-marpit-pagination="19" style="--paginate:true;" data-marpit-pagination-total="26">
-<h1 id="configuring-beats-agents-1">Configuring Beats agents</h1>
-<p>These are the endpoints for Prometheus collectors. We want to add the metrics from Monarch for slice monitoring metrics.</p>
+<h1 id="configuring-beats-agents-3">Configuring Beats Agents (3)</h1>
+<p><strong>Mini Exercise:</strong> This is the section for configuring endpoints for Prometheus collectors. We want to add the metrics endpoint from Monarch to gather slice monitoring metrics.</p>
 <p>Go to <a href="http://localhost:30095/targets?search=" target="_blank">http://localhost:30095/targets?search=</a>, and find the endpoints. Two of them have already been configured.</p>
 <p>Add the AMF, SMF, and UPF endpoints on that page by replacing the <code>&lt;insert AMF/SMF/UPF collector URL&gt;</code> with the endpoints from Prometheus. Ensure that the port is included in the URL, but the <code>/metrics</code> subpath is removed.</p>
 <blockquote>
-<p>Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file</p>
+<p>Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file if you are stuck.</p>
 </blockquote>
 </section>
 </foreignObject></svg><svg data-marpit-svg="" viewBox="0 0 1280 720"><foreignObject width="1280" height="720"><section id="20" data-paginate="true" lang="en-CA" data-marpit-pagination="20" style="--paginate:true;" data-marpit-pagination-total="26">
 <h1 id="deploy-beats">Deploy Beats</h1>
-<p>Now we deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:</p>
+<p>Now that all the Prometheus endpoints are configured, we can deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:</p>
 <pre is="marp-pre" data-auto-scaling="downscale-only"><code>./deploy-beats.sh
 </code></pre>
 <p>Filebeat, Metricbeat, and Packetbeat all produce events from different types of information.</p>
