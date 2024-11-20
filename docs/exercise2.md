@@ -72,4 +72,4 @@ You have successfully completed the following:
 - Configured retry for a processor
 
 **What's Next?**
-You can go back to the main session [here](https://hautonjt.github.io/pipeline2.pdf#page=24).
+You can go back to the main session [here](https://hautonjt.github.io/pipeline2.pdf#page=28).
