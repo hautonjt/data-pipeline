@@ -117,7 +117,7 @@ For example, the "ConsumeKafkaRecord_2_6" processor has two relationships: `succ
 
 ---
 
-# Configuring NiFi Relationships
+# Configuring NiFi Relationships (2)
 
 Below each relationship is a brief explanation. For example, in our case, the event will be sent to the `parse.failure` relationship if it is not a valid JSON file. Every relationship has both a "terminate" and "retry" option.  
 
@@ -125,7 +125,7 @@ Below each relationship is a brief explanation. For example, in our case, the ev
 
 ---
 
-# Configuring NiFi Relationships
+# Configuring NiFi Relationships (3)
 
 Enabling the "retry" option will cause the event to be re-processed by the processor a set number of times in a configurable manner. The "terminate" option causes the event to be dropped. Both "retry" and "terminate" options can be enabled, which causes the event to be dropped after all retries have been exhausted.
 
@@ -133,7 +133,7 @@ Any relationship that does not have the "terminate" option enabled must be conne
 
 ---
 
-# Configuring NiFi Relationships
+# Configuring NiFi Relationships (4)
 
 First, we need to terminate all the relationships we don't need. Open the ConsumeKafkaRecord_2_6 settings again. Go to the "Relationships" tab, and select "terminate" under `parse.failure`, and apply. 
 
@@ -141,7 +141,7 @@ Then, open the PutElasticsearchRecord processor settings, go to the "Relationshi
 
 ---
 
-# Configuring NiFi Relationships
+# Configuring NiFi Relationships (5)
 
 Now, hover over the ConsumeKafkaRecord_2_6 processor until an arrow appears in the middle of it. Drag the arrow to the PutElasticsearchRecord processor. Select the `success` relationship, and apply. This creates a connection for the `success` relationship between the ConsumeKafkaRecord_2_6 and the PutElasticsearchRecord processors.
 
@@ -180,7 +180,7 @@ Hint: You can select multiple processors by holding down "Shift".
 
 Configure the processors for the *metricbeat*, *packetbeat*, and *prometheus* topics.
 
-Ensure that both the Topic Name in the ConsumeKafkaRecord_2_6 processor and the Index in the PutElasticsearchRecord processor are set correctly.
+Ensure that both the Topic Name in the ConsumeKafkaRecord_2_6 processor and the Index in the PutElasticsearchRecord processor are set to the same value for consistency.
 
 ---
 
