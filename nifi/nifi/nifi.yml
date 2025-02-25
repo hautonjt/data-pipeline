@@ -55,6 +55,19 @@ spec:
             capabilities:
               drop:
                 - ALL
+        - name: create-nifi-config
+          image: docker.io/apache/nifi:1.28.0
+          imagePullPolicy: IfNotPresent
+          command: ["sh", "-c", "[ -f /conf/conf/flow.xml.gz ] && echo 'Config files already present' || { cp -rp /opt/nifi/nifi-current/conf /conf && echo 'Copied config files'; };"]
+          env:
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name # Use pod name
+          volumeMounts:
+            - name: conf
+              mountPath: /conf
+              subPathExpr: $(POD_NAME)
       containers:
       - name: nifi
         image: docker.io/apache/nifi:1.28.0
@@ -120,6 +133,9 @@ spec:
             mountPath: /opt/nifi/nifi-current/keytool/truststore.p12
             subPath: truststore.p12
             readOnly: true
+          - name: conf
+            mountPath: /opt/nifi/nifi-current/conf
+            subPathExpr: $(POD_NAME)/conf
           - name: state
             mountPath: /opt/nifi/nifi-current/state
             subPathExpr: $(POD_NAME)
@@ -164,5 +180,9 @@ spec:
         - name: state
           hostPath:
             path: /var/lib/nifi
+            type: DirectoryOrCreate
+        - name: conf
+          hostPath:
+            path: /etc/nifi
             type: DirectoryOrCreate
 

@@ -34,7 +34,7 @@ data:
 
       - module: prometheus
         period: 5s
-        hosts: ["<insert UPF collector URL"]
+        hosts: ["<insert UPF collector URL>"]
         metricsets: ["collector"]
         metrics_path: /metrics  
 
