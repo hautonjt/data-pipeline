@@ -22,7 +22,7 @@ img[alt~="center"] {
 
 ---
 
-# Learning about data pipelines
+# Background: Learning about data pipelines
 
 This session will be all about the components of data pipelines. Specifically, we will be using the following components for our pipeline today:
   - Extractor: Filebeat, Metricbeat, and Packetbeat
@@ -34,7 +34,7 @@ However, to demonstrate the pipeline working, we need an environment to gather d
 
 ---
 
-# Re-deploying the 5G Core
+# Exercise: Re-deploying the 5G Core
 
 To begin, we will use `git clone` to fetch the source code of our data pipeline and re-create the entire Kubernetes setup we had deployed yesterday. 
 > Tip: Triple-click to select a whole line in a code block. To paste in a terminal, use the shortcut Ctrl-Shift-V instead of Ctrl-V.
@@ -49,7 +49,7 @@ We will be extracting logs from every Kubernetes container using Filebeat, memor
 
 ---
 
-# How do we create a data pipeline?
+# Background: How do we create a data pipeline?
 
 Generally, in production we want to deploy a data pipeline in the following order:
   1. Database
@@ -61,7 +61,7 @@ The database and buffer are deployed first as they only receive events and do no
 
 ---
 
-# How do we create a data pipeline? (2)
+# Background: How do we create a data pipeline? (2)
 
 However, for testing, it is easier to deploy the pipeline like this:
   1. Database
@@ -73,7 +73,7 @@ By deploying the pipeline in this order, the extractors will send a bunch of eve
 
 ---
 
-# What is OpenSearch?
+# Background: What is OpenSearch?
 
 As previously mentioned, we'll be using OpenSearch for the database of our pipeline. OpenSearch is a **fork** of ElasticSearch developed by Amazon. It was forked because the company developing ElasticSearch, Elastic NV, changed its license to restrict commercial usage.
 
@@ -81,7 +81,7 @@ Due to its common ancestry, many open-source tools that work with ElasticSearch 
 
 ---
 
-# How does OpenSearch Work?
+# Background: How does OpenSearch Work?
 
 Data stored in OpenSearch using indexes. Each index consists of a number of primary shards, which allow data to be spread across multiple machines. These shards can be configured with replicas to provided high availability.
 
@@ -89,7 +89,7 @@ Data stored in OpenSearch using indexes. Each index consists of a number of prim
 
 ---
 
-# Deploying the database
+# Exercise: Deploying the database
 First, let's deploy the OpenSearch cluster. Run the following:
 ```
 cd ~/data-pipeline
@@ -104,7 +104,7 @@ This script does the following:
 
 ---
 
-# Switching namespaces
+# Optional: Switching namespaces
 
 All of the containers we will be deploying in this session will be assigned to a new namespace named `datapipeline`.
 
@@ -114,25 +114,27 @@ kubectl config set-context --current --namespace=datapipeline
 ```
 > Tip: if OpenSearch is still deploying, you can also run this in a new terminal window
 
-Now, if you run a kubectl command, such as,  `kubectl get pods`, it will run that command in the context of the `datapipeline` namespace by default.
+Now, if you run a `kubectl` command, such as,  `kubectl get pods`, it will run that command in the context of the `datapipeline` namespace by default.
 
+> We won't be using `kubectl` directly this session, but it can still be useful for debugging.
 ---
 
-# Access OpenSearch Dashboards
+# Exercise: Access OpenSearch Dashboards
 
 > Tip: Click links with your scroll wheel (middle click) to open links in a new tab. Alternatively, right click to choose if a link should open in a new tab or window.
 
-To access the dashboards, navigate to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully and you may close it. We will return to OpenSearch Dashboards later on.
+To access the dashboards, navigate to <a href="http://localhost:32001" target="_blank">http://localhost:32001</a>. Both the username and password to log in are set to the value `admin`. If you reach the screen below, then OpenSearch has been deployed successfully and you may close it. We will return to OpenSearch later.
 
-![height:300px center](images/dashboards-intro.png)
+![height:250px center](images/dashboards-intro.png)
 
 ---
 
-# Deploy Kafka
+# Exercise: Deploy Kafka
 
 Now that OpenSearch is configured, we can install Apache Kafka. To deploy Kafka, ensure you are in the `data-pipeline` directory, and run:
 
 ```
+cd ~/data-pipeline
 ./deploy-kafka.sh
 ```
 
@@ -140,15 +142,15 @@ This deploys both a Kafka cluster and Kafka-UI, which can be used to configure K
 
 ---
 
-# What is Kafka?
+# Background: What is Kafka?
 
 Kafka is a distributed event store. Events in Kafka are mainly divided into *topics*, which are essentially categories of events. Topics are divided into partitions. These partitions allow events in a topic to be distributed across different instances of Kafka, and replicated partitions can provide fault-tolerance.
 
-![height:400px center](images/kafka.png)
+![height:350px center](images/kafka.png)
 
 ---
 
-# What is Kafka? (2)
+# Background: What is Kafka? (2)
 
 Topics can be configured to have any number of partitions. The higher number of partitions, the more distributed your data becomes, at the cost of some overhead. Data redundancy and availability is configured using the replication factor, and the number of in-sync replicas. 
 
@@ -157,7 +159,7 @@ Replication factor controls the number of copies of each partition. Having a rep
 
 ---
 
-# What is Kafka? (3)
+# Background: What is Kafka? (3)
 
 
 ### Min in-sync replicas
@@ -169,27 +171,22 @@ Unlike message queues like RabbitMQ, data stored in Kafka topics are not deleted
 
 ---
 
-# Configuring Kafka
+# Exercise: Configuring Kafka
 
 **1. Accessing Kafka-UI**
 Once the deployment is done, the UI is accessible at <a href="http://localhost:32000" target="_blank">http://localhost:32000</a>.
 **2. Create filebeat topic**
-On the left sidebar, click *Topics*, then on the top right, select "Add a Topic". Fill out the following settings:
+On the left sidebar, click "Topics", then on the top right, select "Add a Topic". Fill out the following settings, then select "Create" to create the `filebeat` topic:
   - Topic Name: `filebeat`
   - Number of partitions: `3`
   - Min in-sync replicas: `2`
   - Replication factor: `2`
   - Time to retain data: `1 day` (select the "1 day" box below the input)
-
-Then select "Create".
-
 ---
 
-# Configuring Kafka (2)
+# Exercise: Configuring Kafka (2)
 
-**3. Mini-Exercise**
-
-Repeat the prior steps with the topics "metricbeat", "packetbeat", and "prometheus". All other settings should remain the same. Your final screen topics screen should look something like this:
+**Mini-Lab**: Repeat the prior steps with the topics `metricbeat`, `packetbeat`, and `prometheus`. All other settings should remain the same. Your final screen topics screen should look something like this:
 
 ![height:300px center](images/kafka-topics.png)
 
@@ -197,7 +194,7 @@ Repeat the prior steps with the topics "metricbeat", "packetbeat", and "promethe
 
 ---
 
-# Configuring Beats Agents
+# Background: Deploying Beats Agents
 
 Now, we will be deploying our Filebeat, Metricbeat, and Packetbeat agents. Out of the box, Filebeat, Metricbeat, and Packetbeat all support Kubernetes natively and can gather data from Kubernetes automatically, but we also want to gather metrics from our custom Prometheus exporters in Monarch. 
 
@@ -206,11 +203,12 @@ To do this, we will need to explicitly configure Metricbeat to find the Promethe
 
 ---
 
-# Configuring Beats Agents (2)
+# Exercise: Configuring Beats Agents (1)
 
 
 Open the `data-pipeline` folder in VS Code. You can do this by typing:
 ```
+cd ~/dat-pipeline
 code .
 ```
 In the `beats` folder, there is a file called `metricbeat-prometheus.yaml`.
@@ -223,60 +221,90 @@ Find the section that looks like this:
         hosts: ["nssdc-kube-state-metrics.monarch.svc:8080"]
         metricsets: ["collector"]
         metrics_path: /metrics
-
-      - module: prometheus
-        period: 5s
-        hosts: ["kpi-calculator-service.monarch.svc:9000"]
-        metricsets: ["collector"]
-        metrics_path: /metrics
+      ...
 ```
 
 ---
 
-# Configuring Beats Agents (3)
+# Exercise: Configuring Beats Agents (2)
 
-**Mini Exercise:** This is the section for configuring endpoints for Prometheus collectors. We want to add the metrics endpoint from Monarch to gather slice monitoring metrics.
+That section in the file `metricbeat-prometheus.yaml` is responsible for configuring endpoints for Prometheus collectors. We want to add the metrics endpoint from Monarch to gather slice monitoring metrics.
 
-Open the [Prometheus GUI](http://localhost:30095/targets?search=) deployed by Monarch, and view the list of endpoint URLs. 
+**Mini-Lab:**  Open the [Prometheus GUI](http://localhost:30095/targets?search=) deployed by Monarch, and view the list of endpoint URLs. 
 
 Add the AMF, SMF, and UPF endpoints on that page to the Metricbeat configmap by replacing the `<insert AMF/SMF/UPF collector URL>` placeholder text. Ensure that the **port** is included in the URL, but the `/metrics` subpath is removed.
 
 Note that two endpoints have already been configured for Metricbeat as examples so you can see what the format should look like.
 
+---
+
+# Exercise: Configuring Beats Agents (3)
+
+**Mini-Lab Hint:**
+
+![height:280px center](images/monarch-urls-directions.excalidraw.svg)
+
 > Note: answers are in the ~/data-pipeline/lab/metricbeat-prometheus.yaml file if you are stuck.
 
 ---
 
-# Deploy Beats
+# Exercise: Deploy Beats
 
 Now that all the Prometheus endpoints are configured, we can deploy Filebeat, Metricbeat, and Packetbeat all at once. To do this, run:
 ```
+cd ~/data-pipeline
 ./deploy-beats.sh
 ```
+
+This will deploy a variety of Beats to collect metrics we want from the 5G core.
+
+---
+
+# Background: What Beats are we deploying?
 
 Filebeat, Metricbeat, and Packetbeat all produce events from different types of information. 
 
 **Filebeat** reads informations mainly from log files and JSON HTTP endpoints. Filebeat has native integration with Kubernetes, enabling it to read the logs of all running containers, even ones deployed after Filebeat. For advanced use cases, Filebeat can also use Kubernetes annotations to separately parse the logs of certain containers, if necessary.
 
----
-
-# Deploy Beats (2)
-
-**Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with Monarch. It also integrates with kube-state-metrics, which Monarch installs.
-
 **Packetbeat** captures connection information from all network interfaces present in the current running machine. This includes ingress traffic, egress traffic, and network traffic between pods.
 
-Beats are designed to be deployed together, and have a unified schema. Thus, one advantage of using Beats is not having to worry about normalizing the schema in the transformer.
+---
+
+# Background: What Beats are we deploying? (2)
+
+**Metricbeat** reads metrics, typically resource usage, from the system. It also has native integrations with various metrics providers. Notably, this includes Prometheus, allowing us to integrate with Monarch. It also integrates with `kube-state-metrics`, which Monarch installs. `kube-state-metrics` is a tool that automatically gathers all sorts of statistical information about a Kubernetes cluster.
+
+Beats are designed to be deployed together, and have a unified schema designed to make it simple to correlate events from different sources in OpenSearch. Thus, one advantage of using Beats is not having to worry about normalizing the schema in the transformer. Additionally, visualizations and tools that use the Beats schema would work out-of-the-box.
 
 ---
 
-# Checking Output
+# Checkpoint: Kafka Topic Messages
 
-If you check the Kafka UI at <a href="http://localhost:32000" target="_blank">http://localhost:32000</a>, you should be able to see messages in all the topics if you navigate to Topics on the left menu. Within each individual topic, you can view the messages within the topic by selecting the "Messages" tab. If you do not see messages, please ask for help.
+If you check the Kafka UI at <a href="http://localhost:32000" target="_blank">http://localhost:32000</a>, you should be able to see messages in all the topics if you navigate to Topics on the left menu. Within each individual topic, you can view the messages within the topic by selecting the "Messages" tab. If the number of messages is 0, please ask for help.
+
+![height:300px center](images/kafka-topics.svg)
 
 ---
 
-# NiFi
+# Recovery: Beats and Kafka configuration
+
+Below are instructions to recover if issues are encountered and the Beats and Kafka lab(s) could not be completed.
+
+To quickly deploy the correct Kafka configuration, run:
+```
+cd ~/data-pipeline/kafka-answers
+./answer.sh
+```
+
+To quickly deploy the correct Beats configuration, run:
+```
+cd ~/data-pipeline/beats-answers
+./answer.sh
+```
+
+---
+
+# Exercise: NiFi
 
 Finally, let's deploy NiFi. To do this, run:
 ```
@@ -288,22 +316,21 @@ This script does the following:
 - deploys a NiFi cluster of 3 nodes
 - deploys a Zookeeper cluster of 3 nodes (used by NiFi for maintaining configuration and cluster information)
 
-Warning: this deployment takes a long time to complete.
+**Warning**: this deployment takes a long time to complete.
 
 ---
 
-# What is NiFi?
+# Background: How does NiFi work?
 
 NiFi is a versatile distributed data processor. NiFi allows you to create data processing graphs that can allow you to visually see how data will be processed. 
 
-# How does NiFi work?
 NiFi operates using the concept of FlowFiles, which is just a container that can hold any data along with some attributes, which are essentially metadata. This means that FlowFiles inherently do not have any structure at all.
 
 Processors act on FlowFiles and transforms them in some way. There are a vast array of processors that cater to almost any use case, and for use cases that built-in processors are incapable of handling, NiFi also supports calling external scripts. You can integrate ML with NiFi directly using processors instead of interfacing with Kafka.
 
 ---
 
-# How does NiFi work? (2)
+# Background: How does NiFi work? (2)
 
 Since FlowFiles have no structure, typically services need to be specified so the processor knows how to parse the FlowFile and what format to output it in. For example, the `JsonTreeReader` service reads the FlowFile and parses it into one or more JSON object for processing. The `JsonRecordSetWriter` writes an array of JSON objects as its output.
 
